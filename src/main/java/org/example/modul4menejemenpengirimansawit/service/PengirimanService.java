@@ -13,17 +13,16 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class PengirimanService {
+public class PengirimanService extends PengirimanResponseDTO{
 
     private  PengirimanRepository pengirimanRepository;
     private  EksternalIntegrationService eksternalService;
-    private  PengirimanEventPublisher eventPublisher;
 
     // Constructor Injection (Lebih disarankan daripada @Autowired)
-    public PengirimanService(PengirimanRepository pengirimanRepository, EksternalIntegrationService eksternalService, PengirimanEventPublisher eventPublisher) {
+    public PengirimanService(PengirimanRepository pengirimanRepository, EksternalIntegrationService eksternalService) {
         this.pengirimanRepository = pengirimanRepository;
         this.eksternalService = eksternalService;
-        this.eventPublisher = eventPublisher;
+
     }
 
     public PengirimanResponseDTO tugaskanSupir(CreatePengirimanRequestDTO request, Long mandorId) {

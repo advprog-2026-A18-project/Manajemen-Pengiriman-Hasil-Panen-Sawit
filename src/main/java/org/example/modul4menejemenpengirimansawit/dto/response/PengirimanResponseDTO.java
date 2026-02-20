@@ -1,10 +1,11 @@
 package org.example.modul4menejemenpengirimansawit.dto.response;
 
 import org.example.modul4menejemenpengirimansawit.dto.external.PanenDTO;
-
+import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;
-
+@Getter
+@Setter
 public class PengirimanResponseDTO {
     private Long id;
     private Long mandorId;
