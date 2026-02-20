@@ -40,3 +40,10 @@ dependencies {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+sonar {
+    properties {
+        property("sonar.projectKey", "advprog-2026-A18-project_Manajemen-Pengiriman-Hasil-Panen-Sawit")
+        property("sonar.organization", "advprog-2026-a18-project")
+        property("sonar.host.url", "https://sonarcloud.io")
+    }
+}
