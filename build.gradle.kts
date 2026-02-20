@@ -2,6 +2,7 @@ plugins {
     java
     id("org.springframework.boot") version "4.0.2"
     id("io.spring.dependency-management") version "1.1.7"
+    id("org.sonarqube") version "7.2.0.6526"
 }
 
 group = "org.example"
@@ -32,9 +33,18 @@ dependencies {
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     annotationProcessor("org.projectlombok:lombok")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+    runtimeOnly("org.postgresql:postgresql")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+sonar {
+    properties {
+        property("sonar.projectKey", "advprog-2026-A18-project_Manajemen-Pengiriman-Hasil-Panen-Sawit")
+        property("sonar.organization", "advprog-2026-a18-project")
+        property("sonar.host.url", "https://sonarcloud.io")
+    }
+}
+
