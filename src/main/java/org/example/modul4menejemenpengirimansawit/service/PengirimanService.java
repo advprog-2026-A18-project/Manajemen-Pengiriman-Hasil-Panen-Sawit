@@ -1,70 +1,153 @@
 package org.example.modul4menejemenpengirimansawit.service;
 
-
-import org.example.modul4menejemenpengirimansawit.dto.external.EksternalIntegrationService;
-import org.example.modul4menejemenpengirimansawit.dto.request.CreatePengirimanRequestDTO;
-import org.example.modul4menejemenpengirimansawit.dto.request.ReviewAdminRequestDTO;
-import org.example.modul4menejemenpengirimansawit.dto.request.ReviewMandorRequestDTO;
-import org.example.modul4menejemenpengirimansawit.dto.request.UpdateStatusRequestDTO;
+import org.example.modul4menejemenpengirimansawit.dto.external.*;
+import org.example.modul4menejemenpengirimansawit.dto.request.*;
 import org.example.modul4menejemenpengirimansawit.dto.response.PengirimanResponseDTO;
+import org.example.modul4menejemenpengirimansawit.model.Pengiriman;
 import org.example.modul4menejemenpengirimansawit.repository.PengirimanRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
-public class PengirimanService extends PengirimanResponseDTO{
+public class PengirimanService {
 
-    private  PengirimanRepository pengirimanRepository;
-    private  EksternalIntegrationService eksternalService;
+    private final PengirimanRepository pengirimanRepository;
+    private final EksternalIntegrationService eksternalService;
 
-    // Constructor Injection (Lebih disarankan daripada @Autowired)
+
     public PengirimanService(PengirimanRepository pengirimanRepository, EksternalIntegrationService eksternalService) {
         this.pengirimanRepository = pengirimanRepository;
         this.eksternalService = eksternalService;
-
     }
 
+
+    @Transactional
     public PengirimanResponseDTO tugaskanSupir(CreatePengirimanRequestDTO request, Long mandorId) {
 
+        List<PanenDTO> listPanen = eksternalService.getPanenByIds(request.getHasilPanenId());
 
-//         TODO 1: Panggil eksternalService.getPanenByIds() untuk totalin berat sawitnya.
-//         TODO 2: Validasi apakah total berat > 400 kg[cite: 125]. Kalau iya, throw exception.
-//         TODO 3: Buat objek Pengiriman baru, set status awal "Memuat"[cite: 127].
-//         TODO 4: Simpan pakai pengirimanRepository.save().
-//         TODO 5: Kembalikan dalam bentuk PengirimanResponseDTO.
-        return null;
+
+        double totalBerat = listPanen.stream().mapToDouble(PanenDTO::getKilogramSawit).sum();
+
+
+        if (totalBerat > 400.0) {
+            throw new IllegalArgumentException("Total muatan melebihi kapasitas maksimum truk (400 Kg).");
+        }
+
+        Pengiriman pengiriman = Pengiriman.builder()
+                .id(UUID.randomUUID()) // Gunakan UUID sesuai model
+                .mandorId(mandorId)
+                .supirId(request.getSupirId())
+                .hasilPanen(request.getHasilPanenId())
+                .totalBeratKg(totalBerat)
+                .status("Memuat") // Status default [cite: 127]
+                .tanggalPengiriman(LocalDateTime.now())
+                .statusPersetujuanMandor("PENDING")
+                .statusPersetujuanAdmin("PENDING")
+                .build();
+
+        pengiriman = pengirimanRepository.save(pengiriman);
+        return convertToResponseDTO(pengiriman);
     }
 
-    public PengirimanResponseDTO updateStatusPengiriman(Long pengirimanId, UpdateStatusRequestDTO request) {
-        // TODO 1: Cari pengiriman berdasarkan ID.
-//        [cite_start]// TODO 2: Ubah statusnya sesuai request (Memuat -> Mengirim -> Tiba di Tujuan)[cite: 126].
-        // TODO 3: Simpan perubahan ke database.
-        return null;
+
+    @Transactional
+    public PengirimanResponseDTO updateStatusPengiriman(UUID pengirimanId, UpdateStatusRequestDTO request) {
+        Pengiriman pengiriman = findPengirimanOrThrow(pengirimanId);
+
+        String status = request.getStatus();
+        // Validasi alur status sesuai spek: Memuat, Mengirim, Tiba di Tujuan [cite: 126]
+        if (!List.of("Memuat", "Mengirim", "Tiba di Tujuan").contains(status)) {
+            throw new IllegalArgumentException("Status pengiriman tidak valid.");
+        }
+
+        pengiriman.setStatus(status);
+        return convertToResponseDTO(pengirimanRepository.save(pengiriman));
     }
 
-    public PengirimanResponseDTO reviewPengirimanByMandor(Long pengirimanId, ReviewMandorRequestDTO request) {
-        // TODO 1: Cari pengiriman berdasarkan ID.
-        // TODO 2: Cek request.isApproved().
-//        [cite_start]// TODO 3: Jika false, validasi wajib ada alasan penolakan[cite: 132].
-        // TODO 4: Update status approval Mandor dan simpan.
-//        [cite_start]// TODO 5: Jika disetujui (true), panggil eventPublisher.publishSupirPayrollEvent()[cite: 135].
-        return null;
+
+    @Transactional
+    public PengirimanResponseDTO reviewByMandor(UUID pengirimanId, ReviewMandorRequestDTO request) {
+        Pengiriman pengiriman = findPengirimanOrThrow(pengirimanId);
+
+        if (request.isApproved()) {
+            pengiriman.setStatusPersetujuanMandor("DISETUJUI");
+            // Trigger Payroll Supir secara asinkronus [cite: 135]
+            // eventPublisher.publishEvent(new SupirPayrollEvent(pengiriman));
+        } else {
+            if (request.getAlasanPenolakan() == null || request.getAlasanPenolakan().isBlank()) {
+                throw new IllegalArgumentException("Alasan penolakan wajib diisi[cite: 132].");
+            }
+            pengiriman.setStatusPersetujuanMandor("DITOLAK");
+            pengiriman.setAlasanPenolakan(request.getAlasanPenolakan());
+        }
+
+        return convertToResponseDTO(pengirimanRepository.save(pengiriman));
     }
 
-    public PengirimanResponseDTO reviewPengirimanByAdmin(Long pengirimanId, ReviewAdminRequestDTO request) {
-        // TODO 1: Cari pengiriman berdasarkan ID.
-        // TODO 2: Cek statusApproval dari request (Approve / Reject / Partial_Reject).
-//        [cite_start]// TODO 3: Jika Reject/Partial_Reject, wajib simpan alasan penolakan[cite: 140, 142].
-        // TODO 4: Update database.
-//        [cite/_start]// TODO 5: Jika Approve atau Partial_Reject, panggil eventPublisher.publishMandorPayrollEvent()[cite: 140, 143].
-        return null;
+
+    @Transactional
+    public PengirimanResponseDTO reviewByAdmin(UUID pengirimanId, ReviewAdminRequestDTO request) {
+        Pengiriman pengiriman = findPengirimanOrThrow(pengirimanId);
+
+        String status = request.getStatusAproval(); // "Approve", "Reject", atau "Partial_Reject"
+        pengiriman.setStatusPersetujuanAdmin(status);
+
+        if ("Partial_Reject".equalsIgnoreCase(status)) {
+            if (request.getBeratdiAkuiKg() == null || request.getAlasanPenolakan() == null) {
+                throw new IllegalArgumentException("Partial Reject memerlukan berat diakui dan alasan[cite: 142].");
+            }
+            pengiriman.setBeratDiakui(request.getBeratdiAkuiKg());
+            pengiriman.setAlasanPenolakan(request.getAlasanPenolakan());
+        } else if ("Approve".equalsIgnoreCase(status)) {
+            pengiriman.setBeratDiakui(pengiriman.getTotalBeratKg());
+
+        } else {
+            pengiriman.setAlasanPenolakan(request.getAlasanPenolakan());
+        }
+
+        return convertToResponseDTO(pengirimanRepository.save(pengiriman));
     }
+
 
     public List<PengirimanResponseDTO> getDaftarPengiriman(String status, Long supirId, String tanggal) {
-        // TODO 1: Ambil data dari repository (bisa pakai findAll atau method custom di repository).
-        // TODO 2: Terapkan filter sesuai parameter yang tidak null.
-        // TODO 3: Loop data pengiriman, panggil eksternalService untuk ambil nama supir/mandor, lalu map ke List<PengirimanResponseDTO>.
-        return null;
+        return pengirimanRepository.findAll().stream()
+                .filter(p -> status == null || p.getStatus().equalsIgnoreCase(status))
+                .filter(p -> supirId == null || p.getSupirId() == supirId)
+                .filter(p -> tanggal == null || p.getTanggalPengiriman().toLocalDate().toString().equals(tanggal))
+                .map(this::convertToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+
+    private Pengiriman findPengirimanOrThrow(UUID id) {
+        return pengirimanRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Pengiriman dengan ID " + id + " tidak ditemukan."));
+    }
+
+
+    private PengirimanResponseDTO convertToResponseDTO(Pengiriman entity) {
+        UserDTO mandor = eksternalService.getMandorById(entity.getMandorId());
+        UserDTO supir = eksternalService.getSupirById(entity.getSupirId());
+        List<PanenDTO> details = eksternalService.getPanenByIds(entity.getHasilPanen());
+
+        PengirimanResponseDTO dto = new PengirimanResponseDTO();
+        dto.setId(entity.getId());
+        dto.setMandorId(entity.getMandorId());
+        dto.setNamaMandor(mandor != null ? mandor.getNama() : "Data Mandor Tidak Ditemukan");
+        dto.setSupirId(entity.getSupirId());
+        dto.setNamaSupir(supir != null ? supir.getNama() : "Data Supir Tidak Ditemukan");
+        dto.setDetailPanen(details);
+        dto.setTotalBeratKg(entity.getTotalBeratKg());
+        dto.setStatusPengiriman(entity.getStatus());
+        dto.setTanggalPengiriman(entity.getTanggalPengiriman());
+        dto.setStatusPersetujuanMandor(entity.getStatusPersetujuanMandor());
+        dto.setStatusPersetujuanAdmin(entity.getStatusPersetujuanAdmin());
+        return dto;
     }
 }

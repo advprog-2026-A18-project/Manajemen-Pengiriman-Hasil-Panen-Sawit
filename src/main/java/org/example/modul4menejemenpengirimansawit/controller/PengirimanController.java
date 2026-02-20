@@ -1,15 +1,13 @@
 package org.example.modul4menejemenpengirimansawit.controller;
 
-import org.example.modul4menejemenpengirimansawit.dto.request.CreatePengirimanRequestDTO;
-import org.example.modul4menejemenpengirimansawit.dto.request.ReviewAdminRequestDTO;
-import org.example.modul4menejemenpengirimansawit.dto.request.ReviewMandorRequestDTO;
-import org.example.modul4menejemenpengirimansawit.dto.request.UpdateStatusRequestDTO;
+import org.example.modul4menejemenpengirimansawit.dto.request.*;
 import org.example.modul4menejemenpengirimansawit.dto.response.PengirimanResponseDTO;
 import org.example.modul4menejemenpengirimansawit.service.PengirimanService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID; // Import UUID
 
 @RestController
 @RequestMapping("/api/pengiriman")
@@ -29,27 +27,32 @@ public class PengirimanController {
         return ResponseEntity.ok(response);
     }
 
+    // Ubah @PathVariable dari Long menjadi UUID
     @PutMapping("/{id}/status")
     public ResponseEntity<PengirimanResponseDTO> updateStatusPengiriman(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @RequestBody UpdateStatusRequestDTO request) {
         PengirimanResponseDTO response = pengirimanService.updateStatusPengiriman(id, request);
         return ResponseEntity.ok(response);
     }
 
+    // Review Mandor: Menyetujui atau menolak pengiriman [cite: 131, 132]
     @PutMapping("/{id}/review/mandor")
     public ResponseEntity<PengirimanResponseDTO> reviewPengirimanByMandor(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @RequestBody ReviewMandorRequestDTO request) {
-        PengirimanResponseDTO response = pengirimanService.reviewPengirimanByMandor(id, request);
+        // Sesuaikan dengan nama method di service: reviewByMandor
+        PengirimanResponseDTO response = pengirimanService.reviewByMandor(id, request);
         return ResponseEntity.ok(response);
     }
 
+    // Review Admin: Bisa Approve, Reject, atau Partial Reject [cite: 139, 140, 141]
     @PutMapping("/{id}/review/admin")
     public ResponseEntity<PengirimanResponseDTO> reviewPengirimanByAdmin(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @RequestBody ReviewAdminRequestDTO request) {
-        PengirimanResponseDTO response = pengirimanService.reviewPengirimanByAdmin(id, request);
+        // Sesuaikan dengan nama method di service: reviewByAdmin
+        PengirimanResponseDTO response = pengirimanService.reviewByAdmin(id, request);
         return ResponseEntity.ok(response);
     }
 

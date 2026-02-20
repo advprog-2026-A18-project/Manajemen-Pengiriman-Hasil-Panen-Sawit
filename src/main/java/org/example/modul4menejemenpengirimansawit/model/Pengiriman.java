@@ -2,13 +2,12 @@ package org.example.modul4menejemenpengirimansawit.model;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.*;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-@Entity
 @Getter
 @Setter
+@Entity
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -25,5 +24,6 @@ public class Pengiriman {
     private String statusPersetujuanAdmin;
     private String alasanPenolakan;
     private double beratDiakui;
+
 
 }
