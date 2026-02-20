@@ -18,7 +18,7 @@ class PengirimanTest {
         assertEquals(beratEkspektasi, pengiriman.getTotalBeratKg(),
                 "Fungsi getter dan setter untuk totalBeratKg gagal!");
     }
-
+//testes
     @Test
     void testInisialisasiStatus() {
         // Persiapan (Arrange)
