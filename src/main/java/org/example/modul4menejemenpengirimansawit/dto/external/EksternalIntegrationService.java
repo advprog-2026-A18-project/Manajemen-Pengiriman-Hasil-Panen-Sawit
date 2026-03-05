@@ -1,7 +1,9 @@
 package org.example.modul4menejemenpengirimansawit.dto.external;
 
-import java.util.List;
+import lombok.Data;
 
+import java.util.List;
+@Data
 public interface EksternalIntegrationService {
     UserDTO getSupirById(Long supirId);
     UserDTO getMandorById(Long mandorId);

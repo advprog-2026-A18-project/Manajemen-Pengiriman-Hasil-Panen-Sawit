@@ -31,7 +31,7 @@ public class MockEksternalIntegrationService implements EksternalIntegrationServ
     @Override
     public List<PanenDTO> getPanenByIds(List<Long> panenIds) {
         List<PanenDTO> mockList = new ArrayList<>();
-        // Asumsi setiap panen beratnya 100 Kg untuk testing
+
         for (Long id : panenIds) {
             PanenDTO panen = new PanenDTO();
             panen.setId(id);

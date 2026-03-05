@@ -13,7 +13,7 @@ import lombok.*;
 public class PengirimanResponseDTO {
     @Id
     private UUID Id;
-    private Long mandorId;
+    private long mandorId;
     private String namaMandor;
     private Long supirId;
     private String namaSupir;

@@ -27,7 +27,7 @@ public class PengirimanController {
         return ResponseEntity.ok(response);
     }
 
-    // Ubah @PathVariable dari Long menjadi UUID
+
     @PutMapping("/{id}/status")
     public ResponseEntity<PengirimanResponseDTO> updateStatusPengiriman(
             @PathVariable UUID id,
@@ -36,22 +36,20 @@ public class PengirimanController {
         return ResponseEntity.ok(response);
     }
 
-    // Review Mandor: Menyetujui atau menolak pengiriman [cite: 131, 132]
+
     @PutMapping("/{id}/review/mandor")
     public ResponseEntity<PengirimanResponseDTO> reviewPengirimanByMandor(
             @PathVariable UUID id,
             @RequestBody ReviewMandorRequestDTO request) {
-        // Sesuaikan dengan nama method di service: reviewByMandor
         PengirimanResponseDTO response = pengirimanService.reviewByMandor(id, request);
         return ResponseEntity.ok(response);
     }
 
-    // Review Admin: Bisa Approve, Reject, atau Partial Reject [cite: 139, 140, 141]
+
     @PutMapping("/{id}/review/admin")
     public ResponseEntity<PengirimanResponseDTO> reviewPengirimanByAdmin(
             @PathVariable UUID id,
             @RequestBody ReviewAdminRequestDTO request) {
-        // Sesuaikan dengan nama method di service: reviewByAdmin
         PengirimanResponseDTO response = pengirimanService.reviewByAdmin(id, request);
         return ResponseEntity.ok(response);
     }

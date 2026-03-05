@@ -1,5 +1,6 @@
 package org.example.modul4menejemenpengirimansawit.service;
 
+import lombok.RequiredArgsConstructor;
 import org.example.modul4menejemenpengirimansawit.dto.external.*;
 import org.example.modul4menejemenpengirimansawit.dto.request.*;
 import org.example.modul4menejemenpengirimansawit.dto.response.PengirimanResponseDTO;
@@ -14,16 +15,12 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class PengirimanService {
 
     private final PengirimanRepository pengirimanRepository;
     private final EksternalIntegrationService eksternalService;
 
-
-    public PengirimanService(PengirimanRepository pengirimanRepository, EksternalIntegrationService eksternalService) {
-        this.pengirimanRepository = pengirimanRepository;
-        this.eksternalService = eksternalService;
-    }
 
 
     @Transactional
@@ -61,7 +58,6 @@ public class PengirimanService {
         Pengiriman pengiriman = findPengirimanOrThrow(pengirimanId);
 
         String status = request.getStatus();
-        // Validasi alur status sesuai spek: Memuat, Mengirim, Tiba di Tujuan [cite: 126]
         if (!List.of("Memuat", "Mengirim", "Tiba di Tujuan").contains(status)) {
             throw new IllegalArgumentException("Status pengiriman tidak valid.");
         }
