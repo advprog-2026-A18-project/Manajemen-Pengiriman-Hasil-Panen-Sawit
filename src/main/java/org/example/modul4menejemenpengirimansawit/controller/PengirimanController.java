@@ -22,7 +22,7 @@ public class PengirimanController {
     @PostMapping
     public ResponseEntity<PengirimanResponseDTO> tugaskanSupir(
             @RequestBody CreatePengirimanRequestDTO request,
-            @RequestParam Long mandorId) {
+            @RequestParam UUID mandorId) {
         PengirimanResponseDTO response = pengirimanService.tugaskanSupir(request, mandorId);
         return ResponseEntity.ok(response);
     }

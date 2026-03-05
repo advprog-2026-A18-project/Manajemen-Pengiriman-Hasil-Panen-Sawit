@@ -9,8 +9,8 @@ import java.util.UUID;
 @Repository
 public interface PengirimanRepository extends JpaRepository<Pengiriman, UUID> {
 
-    List<Pengiriman> findBySupirId(Long supirId);
-    List<Pengiriman> findByMandorId(Long mandorId);
+    List<Pengiriman> findBySupirId(UUID supirId);
+    List<Pengiriman> findByMandorId(UUID mandorId);
     List<Pengiriman> findByStatus(String status);
 
 }

@@ -24,7 +24,7 @@ public class PengirimanService {
 
 
     @Transactional
-    public PengirimanResponseDTO tugaskanSupir(CreatePengirimanRequestDTO request, Long mandorId) {
+    public PengirimanResponseDTO tugaskanSupir(CreatePengirimanRequestDTO request, UUID mandorId) {
 
         List<PanenDTO> listPanen = eksternalService.getPanenByIds(request.getHasilPanenId());
 
@@ -114,7 +114,7 @@ public class PengirimanService {
     public List<PengirimanResponseDTO> getDaftarPengiriman(String status, Long supirId, String tanggal) {
         return pengirimanRepository.findAll().stream()
                 .filter(p -> status == null || p.getStatus().equalsIgnoreCase(status))
-                .filter(p -> supirId == null || p.getSupirId() == supirId)
+                .filter(p -> supirId == null || supirId.equals(p.getSupirId()))
                 .filter(p -> tanggal == null || p.getTanggalPengiriman().toLocalDate().toString().equals(tanggal))
                 .map(this::convertToResponseDTO)
                 .collect(Collectors.toList());

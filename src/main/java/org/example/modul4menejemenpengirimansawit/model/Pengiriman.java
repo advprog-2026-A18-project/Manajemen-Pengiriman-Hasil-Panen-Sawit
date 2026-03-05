@@ -17,13 +17,13 @@ public class Pengiriman {
     private UUID id;
 
     @Column(nullable = false)
-    private long mandorId;
+    private UUID mandorId;
 
     @Column(nullable = false)
-    private long supirId;
+    private UUID supirId;
 
     @Column(nullable = false)
-    private List<Long> hasilPanen;
+    private List<UUID> hasilPanen;
 
     @Column(nullable = false)
     private double totalBeratKg;

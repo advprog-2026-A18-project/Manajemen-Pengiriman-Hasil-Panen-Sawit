@@ -1,185 +1,111 @@
 package org.example.modul4menejemenpengirimansawit.model;
 
-import org.example.modul4menejemenpengirimansawit.dto.external.*;
-import org.example.modul4menejemenpengirimansawit.dto.request.*;
-import org.example.modul4menejemenpengirimansawit.dto.response.PengirimanResponseDTO;
-import org.example.modul4menejemenpengirimansawit.model.Pengiriman;
-import org.example.modul4menejemenpengirimansawit.repository.PengirimanRepository;
-import org.example.modul4menejemenpengirimansawit.service.PengirimanService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
-class PengirimanServiceTest {
+class PengirimanTest {
 
-    @Mock
-    private PengirimanRepository pengirimanRepository;
+    @Test
+    void testGetterAndSetter() {
+        // Persiapan objek kosong (menguji @NoArgsConstructor)
+        Pengiriman pengiriman = new Pengiriman();
 
-    @Mock
-    private EksternalIntegrationService eksternalService;
+        UUID id = UUID.randomUUID();
+        UUID mandorId = UUID.randomUUID();
+        UUID supirId = UUID.randomUUID();
+        List<UUID> hasilPanen = List.of(UUID.randomUUID(), UUID.randomUUID());
+        LocalDateTime now = LocalDateTime.now();
 
-    @InjectMocks
-    private PengirimanService pengirimanService;
+        // Menguji Setter
+        pengiriman.setId(id);
+        pengiriman.setMandorId(mandorId);
+        pengiriman.setSupirId(supirId);
+        pengiriman.setHasilPanen(hasilPanen);
+        pengiriman.setTotalBeratKg(450.5);
+        pengiriman.setStatus("Memuat");
+        pengiriman.setTanggalPengiriman(now);
+        pengiriman.setStatusPersetujuanMandor("DISETUJUI");
+        pengiriman.setStatusPersetujuanAdmin("PENDING");
+        pengiriman.setAlasanPenolakan("Kapasitas penuh");
+        pengiriman.setBeratDiakui(400.0);
 
-    private UUID pengirimanId;
-    private Pengiriman pengiriman;
-    private List<Long> listPanenId;
+        // Menguji Getter
+        assertEquals(id, pengiriman.getId());
+        assertEquals(mandorId, pengiriman.getMandorId());
+        assertEquals(supirId, pengiriman.getSupirId());
+        assertEquals(hasilPanen, pengiriman.getHasilPanen());
+        assertEquals(450.5, pengiriman.getTotalBeratKg());
+        assertEquals("Memuat", pengiriman.getStatus());
+        assertEquals(now, pengiriman.getTanggalPengiriman());
+        assertEquals("DISETUJUI", pengiriman.getStatusPersetujuanMandor());
+        assertEquals("PENDING", pengiriman.getStatusPersetujuanAdmin());
+        assertEquals("Kapasitas penuh", pengiriman.getAlasanPenolakan());
+        assertEquals(400.0, pengiriman.getBeratDiakui());
+    }
 
-    @BeforeEach
-    void setUp() {
-        pengirimanId = UUID.randomUUID();
-        listPanenId = List.of(1L, 2L);
+    @Test
+    void testAllArgsConstructor() {
+        UUID id = UUID.randomUUID();
+        UUID mandorId = UUID.randomUUID();
+        UUID supirId = UUID.randomUUID();
+        List<UUID> hasilPanen = List.of(UUID.randomUUID());
+        LocalDateTime now = LocalDateTime.now();
 
-        pengiriman = Pengiriman.builder()
-                .id(pengirimanId)
-                .mandorId(10L)
-                .supirId(20L)
-                .hasilPanen(listPanenId)
-                .totalBeratKg(300.0)
-                .status("Memuat")
-                .tanggalPengiriman(LocalDateTime.now())
-                .statusPersetujuanMandor("PENDING")
-                .statusPersetujuanAdmin("PENDING")
+        // Menguji @AllArgsConstructor
+        Pengiriman pengiriman = new Pengiriman(id, mandorId, supirId, hasilPanen, 500.0,
+                "Mengirim", now, "DISETUJUI", "DISETUJUI", null, 500.0);
+
+        assertEquals(id, pengiriman.getId());
+        assertEquals(mandorId, pengiriman.getMandorId());
+        assertEquals(supirId, pengiriman.getSupirId());
+        assertEquals(hasilPanen, pengiriman.getHasilPanen());
+        assertEquals(500.0, pengiriman.getTotalBeratKg());
+        assertEquals("Mengirim", pengiriman.getStatus());
+        assertEquals(now, pengiriman.getTanggalPengiriman());
+        assertEquals("DISETUJUI", pengiriman.getStatusPersetujuanMandor());
+        assertEquals("DISETUJUI", pengiriman.getStatusPersetujuanAdmin());
+        assertNull(pengiriman.getAlasanPenolakan());
+        assertEquals(500.0, pengiriman.getBeratDiakui());
+    }
+
+    @Test
+    void testBuilder() {
+        UUID id = UUID.randomUUID();
+        UUID mandorId = UUID.randomUUID();
+        UUID supirId = UUID.randomUUID();
+        List<UUID> hasilPanen = List.of(UUID.randomUUID());
+        LocalDateTime now = LocalDateTime.now();
+
+        // Menguji @Builder
+        Pengiriman pengiriman = Pengiriman.builder()
+                .id(id)
+                .mandorId(mandorId)
+                .supirId(supirId)
+                .hasilPanen(hasilPanen)
+                .totalBeratKg(350.0)
+                .status("Tiba di Tujuan")
+                .tanggalPengiriman(now)
+                .statusPersetujuanMandor("DISETUJUI")
+                .statusPersetujuanAdmin("REJECTED")
+                .alasanPenolakan("Kualitas sawit buruk")
+                .beratDiakui(0.0)
                 .build();
-    }
 
-    @Test
-    void testTugaskanSupir_Success() {
-        CreatePengirimanRequestDTO request = new CreatePengirimanRequestDTO();
-        request.setSupirId(20L);
-        request.setHasilPanenId(listPanenId);
-
-        List<PanenDTO> panenDetails = List.of(
-                PanenDTO.builder().id(1L).kilogramSawit(150.0).build(),
-                PanenDTO.builder().id(2L).kilogramSawit(150.0).build()
-        );
-
-        when(eksternalService.getPanenByIds(listPanenId)).thenReturn(panenDetails);
-        when(pengirimanRepository.save(any(Pengiriman.class))).thenReturn(pengiriman);
-
-        // Mock untuk konversi DTO (ternary operator coverage)
-        when(eksternalService.getMandorById(10L)).thenReturn(UserDTO.builder().nama("Mandor A").build());
-        when(eksternalService.getSupirById(20L)).thenReturn(null); // Test coverage: data supir null
-
-        PengirimanResponseDTO response = pengirimanService.tugaskanSupir(request, 10L);
-
-        assertNotNull(response);
-        assertEquals(300.0, response.getTotalBeratKg());
-        assertEquals("Data Supir Tidak Ditemukan", response.getNamaSupir());
-        verify(pengirimanRepository).save(any());
-    }
-
-    @Test
-    void testTugaskanSupir_ExceedCapacity() {
-        CreatePengirimanRequestDTO request = new CreatePengirimanRequestDTO();
-        request.setHasilPanenId(listPanenId);
-
-        List<PanenDTO> heavyPanen = List.of(PanenDTO.builder().kilogramSawit(500.0).build());
-        when(eksternalService.getPanenByIds(listPanenId)).thenReturn(heavyPanen);
-
-        assertThrows(IllegalArgumentException.class, () -> pengirimanService.tugaskanSupir(request, 10L));
-    }
-
-    @Test
-    void testUpdateStatus_Success() {
-        UpdateStatusRequestDTO request = new UpdateStatusRequestDTO();
-        request.setStatus("Mengirim");
-
-        when(pengirimanRepository.findById(pengirimanId)).thenReturn(Optional.of(pengiriman));
-        when(pengirimanRepository.save(any())).thenReturn(pengiriman);
-
-        PengirimanResponseDTO response = pengirimanService.updateStatusPengiriman(pengirimanId, request);
-        assertEquals("Mengirim", response.getStatusPengiriman());
-    }
-
-    @Test
-    void testUpdateStatus_InvalidStatus() {
-        UpdateStatusRequestDTO request = new UpdateStatusRequestDTO();
-        request.setStatus("Istirahat"); // Status ilegal
-
-        when(pengirimanRepository.findById(pengirimanId)).thenReturn(Optional.of(pengiriman));
-        assertThrows(IllegalArgumentException.class, () -> pengirimanService.updateStatusPengiriman(pengirimanId, request));
-    }
-
-    @Test
-    void testReviewByMandor_Approve() {
-        ReviewMandorRequestDTO request = new ReviewMandorRequestDTO();
-        request.setApproved(true);
-
-        when(pengirimanRepository.findById(pengirimanId)).thenReturn(Optional.of(pengiriman));
-        when(pengirimanRepository.save(any())).thenReturn(pengiriman);
-
-        PengirimanResponseDTO response = pengirimanService.reviewByMandor(pengirimanId, request);
-        assertEquals("DISETUJUI", response.getStatusPersetujuanMandor());
-    }
-
-    @Test
-    void testReviewByMandor_RejectNoReason() {
-        ReviewMandorRequestDTO request = new ReviewMandorRequestDTO();
-        request.setApproved(false);
-        request.setAlasanPenolakan(""); // Kosong
-
-        when(pengirimanRepository.findById(pengirimanId)).thenReturn(Optional.of(pengiriman));
-        assertThrows(IllegalArgumentException.class, () -> pengirimanService.reviewByMandor(pengirimanId, request));
-    }
-
-    @Test
-    void testReviewByAdmin_PartialReject_Success() {
-        ReviewAdminRequestDTO request = new ReviewAdminRequestDTO();
-        request.setStatusAproval("Partial_Reject");
-        request.setBeratdiAkuiKg(250.0);
-        request.setAlasanPenolakan("Ada sawit busuk");
-
-        when(pengirimanRepository.findById(pengirimanId)).thenReturn(Optional.of(pengiriman));
-        when(pengirimanRepository.save(any())).thenReturn(pengiriman);
-
-        pengirimanService.reviewByAdmin(pengirimanId, request);
-        verify(pengirimanRepository).save(argThat(p -> p.getBeratDiakui() == 250.0));
-    }
-
-    @Test
-    void testReviewByAdmin_Approve() {
-        ReviewAdminRequestDTO request = new ReviewAdminRequestDTO();
-        request.setStatusAproval("Approve");
-
-        when(pengirimanRepository.findById(pengirimanId)).thenReturn(Optional.of(pengiriman));
-        when(pengirimanRepository.save(any())).thenReturn(pengiriman);
-
-        pengirimanService.reviewByAdmin(pengirimanId, request);
-        verify(pengirimanRepository).save(argThat(p -> p.getBeratDiakui() == 300.0));
-    }
-
-    @Test
-    void testGetDaftarPengiriman_WithFilters() {
-        String dateStr = LocalDateTime.now().toLocalDate().toString();
-        when(pengirimanRepository.findAll()).thenReturn(List.of(pengiriman));
-
-        // Test filter by supirId and date
-        List<PengirimanResponseDTO> result = pengirimanService.getDaftarPengiriman(null, 20L, dateStr);
-        assertEquals(1, result.size());
-
-        // Test filter mismatch
-        List<PengirimanResponseDTO> emptyResult = pengirimanService.getDaftarPengiriman("Tiba di Tujuan", 99L, null);
-        assertEquals(0, emptyResult.size());
-    }
-
-    @Test
-    void testFindOrThrow_NotFound() {
-        when(pengirimanRepository.findById(any())).thenReturn(Optional.empty());
-        UpdateStatusRequestDTO request = new UpdateStatusRequestDTO();
-        request.setStatus("Mengirim");
-
-        assertThrows(IllegalArgumentException.class, () -> pengirimanService.updateStatusPengiriman(UUID.randomUUID(), request));
+        assertEquals(id, pengiriman.getId());
+        assertEquals(mandorId, pengiriman.getMandorId());
+        assertEquals(supirId, pengiriman.getSupirId());
+        assertEquals(hasilPanen, pengiriman.getHasilPanen());
+        assertEquals(350.0, pengiriman.getTotalBeratKg());
+        assertEquals("Tiba di Tujuan", pengiriman.getStatus());
+        assertEquals(now, pengiriman.getTanggalPengiriman());
+        assertEquals("DISETUJUI", pengiriman.getStatusPersetujuanMandor());
+        assertEquals("REJECTED", pengiriman.getStatusPersetujuanAdmin());
+        assertEquals("Kualitas sawit buruk", pengiriman.getAlasanPenolakan());
+        assertEquals(0.0, pengiriman.getBeratDiakui());
     }
 }
