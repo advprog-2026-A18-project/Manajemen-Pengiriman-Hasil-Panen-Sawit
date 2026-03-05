@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.*;
+
+import java.util.UUID;
+
 @Getter
 @Setter
 @Data
@@ -12,7 +15,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PanenDTO {
-    private Long id;
+    private UUID id;
     private Double kilogramSawit;
     private String beritaHasilPanen;
 }
