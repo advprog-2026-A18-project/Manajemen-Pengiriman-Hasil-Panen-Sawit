@@ -7,13 +7,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 
 @Service
 public class MockEksternalIntegrationService implements EksternalIntegrationService {
 
     @Override
-    public UserDTO getSupirById(Long supirId) {
+    public UserDTO getSupirById(UUID supirId) {
         UserDTO mockSupir = new UserDTO();
         mockSupir.setId(supirId);
         mockSupir.setNama("Supir Bayangan");
@@ -21,7 +22,7 @@ public class MockEksternalIntegrationService implements EksternalIntegrationServ
     }
 
     @Override
-    public UserDTO getMandorById(Long mandorId) {
+    public UserDTO getMandorById(UUID mandorId) {
         UserDTO mockMandor = new UserDTO();
         mockMandor.setId(mandorId);
         mockMandor.setNama("Mandor Bayangan");
@@ -29,10 +30,10 @@ public class MockEksternalIntegrationService implements EksternalIntegrationServ
     }
 
     @Override
-    public List<PanenDTO> getPanenByIds(List<Long> panenIds) {
+    public List<PanenDTO> getPanenByIds(List<UUID> panenIds) {
         List<PanenDTO> mockList = new ArrayList<>();
-        // Asumsi setiap panen beratnya 100 Kg untuk testing
-        for (Long id : panenIds) {
+
+        for (UUID id : panenIds) {
             PanenDTO panen = new PanenDTO();
             panen.setId(id);
             panen.setKilogramSawit(100.0);

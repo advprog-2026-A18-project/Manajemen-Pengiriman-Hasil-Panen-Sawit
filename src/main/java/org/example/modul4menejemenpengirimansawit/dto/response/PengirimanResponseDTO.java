@@ -13,9 +13,9 @@ import lombok.*;
 public class PengirimanResponseDTO {
     @Id
     private UUID Id;
-    private Long mandorId;
+    private UUID mandorId;
     private String namaMandor;
-    private Long supirId;
+    private UUID supirId;
     private String namaSupir;
     private  List<PanenDTO> detailPanen;
     private Double totalBeratKg;

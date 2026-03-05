@@ -1,5 +1,6 @@
 package org.example.modul4menejemenpengirimansawit.service;
 
+import lombok.RequiredArgsConstructor;
 import org.example.modul4menejemenpengirimansawit.dto.external.*;
 import org.example.modul4menejemenpengirimansawit.dto.request.*;
 import org.example.modul4menejemenpengirimansawit.dto.response.PengirimanResponseDTO;
@@ -14,20 +15,16 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class PengirimanService {
 
     private final PengirimanRepository pengirimanRepository;
     private final EksternalIntegrationService eksternalService;
 
 
-    public PengirimanService(PengirimanRepository pengirimanRepository, EksternalIntegrationService eksternalService) {
-        this.pengirimanRepository = pengirimanRepository;
-        this.eksternalService = eksternalService;
-    }
-
 
     @Transactional
-    public PengirimanResponseDTO tugaskanSupir(CreatePengirimanRequestDTO request, Long mandorId) {
+    public PengirimanResponseDTO tugaskanSupir(CreatePengirimanRequestDTO request, UUID mandorId) {
 
         List<PanenDTO> listPanen = eksternalService.getPanenByIds(request.getHasilPanenId());
 
@@ -61,7 +58,6 @@ public class PengirimanService {
         Pengiriman pengiriman = findPengirimanOrThrow(pengirimanId);
 
         String status = request.getStatus();
-        // Validasi alur status sesuai spek: Memuat, Mengirim, Tiba di Tujuan [cite: 126]
         if (!List.of("Memuat", "Mengirim", "Tiba di Tujuan").contains(status)) {
             throw new IllegalArgumentException("Status pengiriman tidak valid.");
         }
@@ -118,7 +114,7 @@ public class PengirimanService {
     public List<PengirimanResponseDTO> getDaftarPengiriman(String status, Long supirId, String tanggal) {
         return pengirimanRepository.findAll().stream()
                 .filter(p -> status == null || p.getStatus().equalsIgnoreCase(status))
-                .filter(p -> supirId == null || p.getSupirId() == supirId)
+                .filter(p -> supirId == null || supirId.equals(p.getSupirId()))
                 .filter(p -> tanggal == null || p.getTanggalPengiriman().toLocalDate().toString().equals(tanggal))
                 .map(this::convertToResponseDTO)
                 .collect(Collectors.toList());
