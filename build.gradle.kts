@@ -28,6 +28,7 @@ repositories {
     mavenCentral()
 }
 
+
 dependencies {
     // API & Web - PAKAI INI supaya databind/Jackson masuk
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -51,8 +52,23 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+// ... (Bagian plugins sampai dependencies tetap sama) ...
+
 tasks.withType<Test> {
     useJUnitPlatform()
+    // Agar setiap kali kamu run 'test', dia otomatis buat laporan JaCoCo
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    // Pastikan test jalan dulu sebelum bikin report
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        // Set lokasi output agar SonarCloud tidak bingung mencari
+        xml.outputLocation.set(layout.buildDirectory.file("reports/jacoco/test/jacocoTestReport.xml"))
+    }
 }
 
 sonar {
@@ -60,7 +76,13 @@ sonar {
         property("sonar.projectKey", "advprog-2026-A18-project_Manajemen-Pengiriman-Hasil-Panen-Sawit")
         property("sonar.organization", "advprog-2026-a18-project")
         property("sonar.host.url", "https://sonarcloud.io")
-        property("sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
+        // Gunakan path dinamis agar selalu akurat di environment mana pun
+        property("sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get()}/reports/jacoco/test/jacocoTestReport.xml")
     }
+}
+
+// Tambahkan ini agar saat kamu jalankan './gradlew sonar', dia otomatis ngerjain test dulu
+tasks.named("sonar") {
+    dependsOn(tasks.jacocoTestReport)
 }
 
