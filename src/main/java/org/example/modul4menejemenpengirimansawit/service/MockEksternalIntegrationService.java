@@ -15,18 +15,18 @@ public class MockEksternalIntegrationService implements EksternalIntegrationServ
 
     @Override
     public UserDTO getSupirById(UUID supirId) {
-        UserDTO mockSupir = new UserDTO();
-        mockSupir.setId(supirId);
-        mockSupir.setNama("Supir Bayangan");
-        return mockSupir;
+        return UserDTO.builder()
+                .id(supirId)
+                .nama("Supir Bayangan")
+                .build();
     }
 
     @Override
     public UserDTO getMandorById(UUID mandorId) {
-        UserDTO mockMandor = new UserDTO();
-        mockMandor.setId(mandorId);
-        mockMandor.setNama("Mandor Bayangan");
-        return mockMandor;
+        return UserDTO.builder()
+                .id(mandorId)
+                .nama("Mandor Bayangan")
+                .build();
     }
 
     @Override

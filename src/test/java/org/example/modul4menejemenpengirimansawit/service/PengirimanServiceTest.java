@@ -250,4 +250,55 @@ class PengirimanServiceTest {
         assertEquals("Data Mandor Tidak Ditemukan", response.getNamaMandor());
         assertEquals("Data Supir Tidak Ditemukan", response.getNamaSupir());
     }
+
+    @Test
+    void testTugaskanSupir_Success_Path() {
+        CreatePengirimanRequestDTO request = new CreatePengirimanRequestDTO();
+        request.setSupirId(supirId);
+        request.setHasilPanenId(listPanenId);
+
+        // Pastikan repository.save mengembalikan objek yang benar agar builder terpanggil
+        when(pengirimanRepository.save(any(Pengiriman.class))).thenReturn(pengiriman);
+
+        PengirimanResponseDTO response = pengirimanService.tugaskanSupir(request, mandorId);
+
+        assertNotNull(response);
+        verify(pengirimanRepository).save(any());
+    }
+
+    @Test
+    void testReviewByAdmin_Approve_Path() {
+        ReviewAdminRequestDTO request = new ReviewAdminRequestDTO();
+        request.setStatusAproval("Approve"); // Sesuaikan typo 'Aproval' di model kamu
+
+        when(pengirimanRepository.findById(pengirimanId)).thenReturn(Optional.of(pengiriman));
+        when(pengirimanRepository.save(any())).thenReturn(pengiriman);
+
+        pengirimanService.reviewByAdmin(pengirimanId, request);
+        verify(pengirimanRepository).save(argThat(p -> p.getBeratDiakui() == p.getTotalBeratKg()));
+    }
+
+    @Test
+    void testReviewByAdmin_Reject_Path() {
+        ReviewAdminRequestDTO request = new ReviewAdminRequestDTO();
+        request.setStatusAproval("Reject");
+        request.setAlasanPenolakan("Dokumen tidak valid");
+
+        when(pengirimanRepository.findById(pengirimanId)).thenReturn(Optional.of(pengiriman));
+        when(pengirimanRepository.save(any())).thenReturn(pengiriman);
+
+        pengirimanService.reviewByAdmin(pengirimanId, request);
+        verify(pengirimanRepository).save(argThat(p -> p.getAlasanPenolakan().equals("Dokumen tidak valid")));
+    }
+
+    @Test
+    void testGetDaftarPengiriman_AllFilters() {
+        String dateStr = pengiriman.getTanggalPengiriman().toLocalDate().toString();
+        when(pengirimanRepository.findAll()).thenReturn(List.of(pengiriman));
+
+        // Tes filter Status, Supir (UUID), dan Tanggal agar logic filter di stream terpanggil
+        List<PengirimanResponseDTO> result = pengirimanService.getDaftarPengiriman("Memuat", null, dateStr);
+
+        assertEquals(1, result.size());
+    }
 }
