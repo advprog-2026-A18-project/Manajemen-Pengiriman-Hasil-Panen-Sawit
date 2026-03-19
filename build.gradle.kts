@@ -1,6 +1,8 @@
+import org.gradle.kotlin.dsl.testImplementation
+
 plugins {
     java
-    id("org.springframework.boot") version "4.0.2"
+    id("org.springframework.boot") version "3.4.3"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.sonarqube") version "7.2.0.6526"
     jacoco
@@ -27,20 +29,32 @@ repositories {
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-webmvc")
-    implementation ("org.springframework.boot:spring-boot-starter-data-jpa")
+    // API & Web - PAKAI INI supaya databind/Jackson masuk
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+
+    // Database
+    runtimeOnly("org.postgresql:postgresql")
+
+    // Lombok - Tambahkan testAnnotationProcessor
     compileOnly("org.projectlombok:lombok")
+    annotationProcessor("org.projectlombok:lombok")
+    testCompileOnly("org.projectlombok:lombok")
+    testAnnotationProcessor("org.projectlombok:lombok")
+
+    // Dev Tools
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
-    annotationProcessor("org.projectlombok:lombok")
-    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-    runtimeOnly("org.postgresql:postgresql")
+
+    // Testing
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
 sonar {
     properties {
         property("sonar.projectKey", "advprog-2026-A18-project_Manajemen-Pengiriman-Hasil-Panen-Sawit")

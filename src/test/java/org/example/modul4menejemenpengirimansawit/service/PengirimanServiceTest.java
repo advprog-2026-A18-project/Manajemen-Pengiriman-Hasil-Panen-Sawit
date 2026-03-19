@@ -193,4 +193,61 @@ class PengirimanServiceTest {
 
         assertThrows(IllegalArgumentException.class, () -> pengirimanService.updateStatusPengiriman(UUID.randomUUID(), request));
     }
+
+    @Test
+    void testReviewByMandor_RejectSuccess() {
+        ReviewMandorRequestDTO request = new ReviewMandorRequestDTO();
+        request.setApproved(false);
+        request.setAlasanPenolakan("Kualitas buah kurang baik");
+
+        when(pengirimanRepository.findById(pengirimanId)).thenReturn(Optional.of(pengiriman));
+        when(pengirimanRepository.save(any())).thenReturn(pengiriman);
+
+        PengirimanResponseDTO response = pengirimanService.reviewByMandor(pengirimanId, request);
+
+        assertEquals("DITOLAK", response.getStatusPersetujuanMandor());
+        verify(pengirimanRepository).save(argThat(p -> p.getAlasanPenolakan().equals("Kualitas buah kurang baik")));
+    }
+
+    @Test
+    void testReviewByAdmin_PartialReject_MissingFields() {
+        ReviewAdminRequestDTO request = new ReviewAdminRequestDTO();
+        request.setStatusAproval("Partial_Reject");
+        // Berat dan alasan sengaja tidak diisi
+
+        when(pengirimanRepository.findById(pengirimanId)).thenReturn(Optional.of(pengiriman));
+
+        assertThrows(IllegalArgumentException.class, () -> pengirimanService.reviewByAdmin(pengirimanId, request));
+    }
+
+    @Test
+    void testReviewByAdmin_RejectOnly() {
+        ReviewAdminRequestDTO request = new ReviewAdminRequestDTO();
+        request.setStatusAproval("Reject");
+        request.setAlasanPenolakan("Dokumen tidak lengkap");
+
+        when(pengirimanRepository.findById(pengirimanId)).thenReturn(Optional.of(pengiriman));
+        when(pengirimanRepository.save(any())).thenReturn(pengiriman);
+
+        pengirimanService.reviewByAdmin(pengirimanId, request);
+        verify(pengirimanRepository).save(argThat(p -> p.getAlasanPenolakan().equals("Dokumen tidak lengkap")));
+    }
+
+    @Test
+    void testConvertToResponseDTO_ExternalDataNotFound() {
+        // Skenario jika service eksternal mengembalikan null (Null Safety check)
+        when(eksternalService.getMandorById(any())).thenReturn(null);
+        when(eksternalService.getSupirById(any())).thenReturn(null);
+
+        UpdateStatusRequestDTO request = new UpdateStatusRequestDTO();
+        request.setStatus("Mengirim");
+
+        when(pengirimanRepository.findById(pengirimanId)).thenReturn(Optional.of(pengiriman));
+        when(pengirimanRepository.save(any())).thenReturn(pengiriman);
+
+        PengirimanResponseDTO response = pengirimanService.updateStatusPengiriman(pengirimanId, request);
+
+        assertEquals("Data Mandor Tidak Ditemukan", response.getNamaMandor());
+        assertEquals("Data Supir Tidak Ditemukan", response.getNamaSupir());
+    }
 }
