@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: ${HASIL_DB_URL}
+    username: ${HASIL_DB_USER}
+    password: ${HASIL_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
