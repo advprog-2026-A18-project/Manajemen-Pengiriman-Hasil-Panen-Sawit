@@ -1,8 +1,10 @@
 package org.example.modul4menejemenpengirimansawit.dto.request;
-import lombok. *;
+
+import lombok.*;
+
 @Setter
 @Getter
 public class ReviewMandorRequestDTO {
     private boolean isApproved;
-    private String AlasanPenolakan;
+    private String alasanPenolakan;  // fix: was 'AlasanPenolakan' (uppercase A)
 }
