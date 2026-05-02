@@ -15,7 +15,7 @@ class MockEksternalIntegrationServiceTest {
     void testMockServiceMethods() {
         UUID id = UUID.randomUUID();
 
-        UserDTO supir = service.getSupirById(id);
+        UserDTO supir  = service.getSupirById(id);
         UserDTO mandor = service.getMandorById(id);
         List<PanenDTO> panen = service.getPanenByIds(List.of(id));
 
@@ -24,5 +24,4 @@ class MockEksternalIntegrationServiceTest {
         assertFalse(panen.isEmpty());
         assertEquals(100.0, panen.get(0).getKilogramSawit());
     }
-
 }
