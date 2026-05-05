@@ -31,6 +31,18 @@ public class PengirimanController {
     }
 
     // ----------------------------------------------------------
+    // UMUM: Lihat daftar pengiriman dengan filter opsional
+    // GET /api/pengiriman?status=Memuat&supirId=<UUID>&tanggal=yyyy-MM-dd
+    // ----------------------------------------------------------
+    @GetMapping
+    public ResponseEntity<List<PengirimanResponseDTO>> getDaftarPengiriman(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) UUID supirId,
+            @RequestParam(required = false) String tanggal) {
+        return ResponseEntity.ok(pengirimanService.getDaftarPengiriman(status, supirId, tanggal));
+    }
+
+    // ----------------------------------------------------------
     // SUPIR: Update status pengiriman (Memuat → Mengirim → Tiba di Tujuan)
     // PUT /api/pengiriman/{id}/status?supirId=<UUID>
     // ----------------------------------------------------------

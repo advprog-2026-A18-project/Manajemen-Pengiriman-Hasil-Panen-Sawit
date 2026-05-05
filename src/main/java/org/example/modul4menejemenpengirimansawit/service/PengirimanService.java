@@ -91,6 +91,16 @@ public class PengirimanService {
     // =========================================================
     // 3. Supir melihat daftar pengiriman miliknya (filter tanggal)
     // =========================================================
+    public List<PengirimanResponseDTO> getDaftarPengiriman(String status, UUID supirId, String tanggal) {
+        return pengirimanRepository.findAll().stream()
+                .filter(p -> status == null || p.getStatus().equalsIgnoreCase(status))
+                .filter(p -> supirId == null || p.getSupirId().equals(supirId))
+                .filter(p -> tanggal == null ||
+                        p.getTanggalPengiriman().toLocalDate().equals(LocalDate.parse(tanggal)))
+                .map(this::convertToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
     public List<PengirimanResponseDTO> getDaftarPengirimanSupir(UUID supirId, String tanggal) {
         return pengirimanRepository.findBySupirId(supirId).stream()
                 .filter(p -> tanggal == null ||
@@ -235,7 +245,7 @@ public class PengirimanService {
     // =========================================================
     private Pengiriman findPengirimanOrThrow(UUID id) {
         return pengirimanRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException(
+                .orElseThrow(() -> new IllegalArgumentException(
                     "Pengiriman dengan ID " + id + " tidak ditemukan."));
     }
 

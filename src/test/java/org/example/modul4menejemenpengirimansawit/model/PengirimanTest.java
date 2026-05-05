@@ -6,17 +6,20 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class PengirimanTest {
 
+    private static final double DELTA = 0.001;
+
     @Test
-    void testGetterAndSetter() {
+    void getterAndSetterShouldStorePengirimanFields() {
         Pengiriman pengiriman = new Pengiriman();
 
-        UUID id         = UUID.randomUUID();
-        UUID mandorId   = UUID.randomUUID();
-        UUID supirId    = UUID.randomUUID();
+        UUID id = UUID.randomUUID();
+        UUID mandorId = UUID.randomUUID();
+        UUID supirId = UUID.randomUUID();
         List<UUID> hasilPanen = List.of(UUID.randomUUID(), UUID.randomUUID());
         LocalDateTime now = LocalDateTime.now();
 
@@ -32,53 +35,52 @@ class PengirimanTest {
         pengiriman.setAlasanPenolakan("Kapasitas penuh");
         pengiriman.setBeratDiakui(400.0);
 
-        assertEquals(id,             pengiriman.getId());
-        assertEquals(mandorId,       pengiriman.getMandorId());
-        assertEquals(supirId,        pengiriman.getSupirId());
-        assertEquals(hasilPanen,     pengiriman.getHasilPanen());
-        assertEquals(450.5,          pengiriman.getTotalBeratKg());
-        assertEquals("Memuat",       pengiriman.getStatus());
-        assertEquals(now,            pengiriman.getTanggalPengiriman());
-        assertEquals("DISETUJUI",    pengiriman.getStatusPersetujuanMandor());
-        assertEquals("PENDING",      pengiriman.getStatusPersetujuanAdmin());
+        assertEquals(id, pengiriman.getId());
+        assertEquals(mandorId, pengiriman.getMandorId());
+        assertEquals(supirId, pengiriman.getSupirId());
+        assertEquals(hasilPanen, pengiriman.getHasilPanen());
+        assertEquals(450.5, pengiriman.getTotalBeratKg(), DELTA);
+        assertEquals("Memuat", pengiriman.getStatus());
+        assertEquals(now, pengiriman.getTanggalPengiriman());
+        assertEquals("DISETUJUI", pengiriman.getStatusPersetujuanMandor());
+        assertEquals("PENDING", pengiriman.getStatusPersetujuanAdmin());
         assertEquals("Kapasitas penuh", pengiriman.getAlasanPenolakan());
-        assertEquals(400.0,          pengiriman.getBeratDiakui());
+        assertEquals(400.0, pengiriman.getBeratDiakui(), DELTA);
     }
 
     @Test
-    void testAllArgsConstructor() {
-        UUID id         = UUID.randomUUID();
-        UUID mandorId   = UUID.randomUUID();
-        UUID supirId    = UUID.randomUUID();
+    void allArgsConstructorShouldStorePengirimanFields() {
+        UUID id = UUID.randomUUID();
+        UUID mandorId = UUID.randomUUID();
+        UUID supirId = UUID.randomUUID();
         List<UUID> hasilPanen = List.of(UUID.randomUUID());
         LocalDateTime now = LocalDateTime.now();
 
-        // UPDATE: alasanPenolakan sekarang nullable — boleh null di sini
         Pengiriman pengiriman = new Pengiriman(
                 id, mandorId, supirId, hasilPanen,
                 500.0, "Mengirim", now,
                 "DISETUJUI", "DISETUJUI",
-                null,   // alasanPenolakan nullable
+                null,
                 500.0);
 
-        assertEquals(id,          pengiriman.getId());
-        assertEquals(mandorId,    pengiriman.getMandorId());
-        assertEquals(supirId,     pengiriman.getSupirId());
-        assertEquals(hasilPanen,  pengiriman.getHasilPanen());
-        assertEquals(500.0,       pengiriman.getTotalBeratKg());
-        assertEquals("Mengirim",  pengiriman.getStatus());
-        assertEquals(now,         pengiriman.getTanggalPengiriman());
+        assertEquals(id, pengiriman.getId());
+        assertEquals(mandorId, pengiriman.getMandorId());
+        assertEquals(supirId, pengiriman.getSupirId());
+        assertEquals(hasilPanen, pengiriman.getHasilPanen());
+        assertEquals(500.0, pengiriman.getTotalBeratKg(), DELTA);
+        assertEquals("Mengirim", pengiriman.getStatus());
+        assertEquals(now, pengiriman.getTanggalPengiriman());
         assertEquals("DISETUJUI", pengiriman.getStatusPersetujuanMandor());
         assertEquals("DISETUJUI", pengiriman.getStatusPersetujuanAdmin());
-        assertNull(pengiriman.getAlasanPenolakan());   // nullable — null adalah valid
-        assertEquals(500.0,       pengiriman.getBeratDiakui());
+        assertNull(pengiriman.getAlasanPenolakan());
+        assertEquals(500.0, pengiriman.getBeratDiakui(), DELTA);
     }
 
     @Test
-    void testBuilder() {
-        UUID id         = UUID.randomUUID();
-        UUID mandorId   = UUID.randomUUID();
-        UUID supirId    = UUID.randomUUID();
+    void builderShouldStorePengirimanFields() {
+        UUID id = UUID.randomUUID();
+        UUID mandorId = UUID.randomUUID();
+        UUID supirId = UUID.randomUUID();
         List<UUID> hasilPanen = List.of(UUID.randomUUID());
         LocalDateTime now = LocalDateTime.now();
 
@@ -96,22 +98,21 @@ class PengirimanTest {
                 .beratDiakui(0.0)
                 .build();
 
-        assertEquals(id,          pengiriman.getId());
-        assertEquals(mandorId,    pengiriman.getMandorId());
-        assertEquals(supirId,     pengiriman.getSupirId());
-        assertEquals(hasilPanen,  pengiriman.getHasilPanen());
-        assertEquals(350.0,       pengiriman.getTotalBeratKg());
-        assertEquals("Tiba di Tujuan",  pengiriman.getStatus());
-        assertEquals(now,         pengiriman.getTanggalPengiriman());
+        assertEquals(id, pengiriman.getId());
+        assertEquals(mandorId, pengiriman.getMandorId());
+        assertEquals(supirId, pengiriman.getSupirId());
+        assertEquals(hasilPanen, pengiriman.getHasilPanen());
+        assertEquals(350.0, pengiriman.getTotalBeratKg(), DELTA);
+        assertEquals("Tiba di Tujuan", pengiriman.getStatus());
+        assertEquals(now, pengiriman.getTanggalPengiriman());
         assertEquals("DISETUJUI", pengiriman.getStatusPersetujuanMandor());
-        assertEquals("DITOLAK",   pengiriman.getStatusPersetujuanAdmin());
+        assertEquals("DITOLAK", pengiriman.getStatusPersetujuanAdmin());
         assertEquals("Kualitas sawit buruk", pengiriman.getAlasanPenolakan());
-        assertEquals(0.0,         pengiriman.getBeratDiakui());
+        assertEquals(0.0, pengiriman.getBeratDiakui(), DELTA);
     }
 
     @Test
-    void testAlasanPenolakan_Nullable() {
-        // UPDATE: alasanPenolakan kini nullable — verifikasi pengiriman normal boleh null
+    void alasanPenolakanShouldAllowNull() {
         Pengiriman pengiriman = Pengiriman.builder()
                 .id(UUID.randomUUID())
                 .mandorId(UUID.randomUUID())
@@ -122,7 +123,7 @@ class PengirimanTest {
                 .tanggalPengiriman(LocalDateTime.now())
                 .statusPersetujuanMandor("PENDING")
                 .statusPersetujuanAdmin("PENDING")
-                .alasanPenolakan(null)  // default pada pengiriman baru
+                .alasanPenolakan(null)
                 .beratDiakui(0.0)
                 .build();
 
