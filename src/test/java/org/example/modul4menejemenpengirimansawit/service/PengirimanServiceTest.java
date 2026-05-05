@@ -305,6 +305,31 @@ class PengirimanServiceTest {
                 () -> pengirimanService.reviewByMandor(pengirimanId, mandorLain, request));
     }
 
+    @Test
+    void testReviewByMandor_AlreadyReviewed_Throws() {
+        ReviewMandorRequestDTO request = new ReviewMandorRequestDTO();
+        request.setApproved(true);
+
+        Pengiriman alreadyReviewed = Pengiriman.builder()
+                .id(pengirimanId)
+                .mandorId(mandorId)
+                .supirId(supirId)
+                .hasilPanen(listPanenId)
+                .totalBeratKg(300.0)
+                .status("Tiba di Tujuan")
+                .tanggalPengiriman(LocalDateTime.now())
+                .statusPersetujuanMandor("DISETUJUI")
+                .statusPersetujuanAdmin("PENDING")
+                .alasanPenolakan(null)
+                .beratDiakui(0.0)
+                .build();
+
+        when(pengirimanRepository.findById(pengirimanId)).thenReturn(Optional.of(alreadyReviewed));
+
+        assertThrows(IllegalStateException.class,
+                () -> pengirimanService.reviewByMandor(pengirimanId, mandorId, request));
+    }
+
     // =========================================================
     // reviewByAdmin
     // UPDATE: Admin hanya boleh review jika statusPersetujuanMandor = "DISETUJUI"
@@ -421,6 +446,84 @@ class PengirimanServiceTest {
                 () -> pengirimanService.reviewByAdmin(pengirimanId, request));
     }
 
+    @Test
+    void testReviewByAdmin_AlreadyReviewed_Throws() {
+        ReviewAdminRequestDTO request = new ReviewAdminRequestDTO();
+        request.setStatusAproval("Approve");
+
+        Pengiriman alreadyReviewed = Pengiriman.builder()
+                .id(pengirimanId)
+                .mandorId(mandorId)
+                .supirId(supirId)
+                .hasilPanen(listPanenId)
+                .totalBeratKg(300.0)
+                .status("Tiba di Tujuan")
+                .tanggalPengiriman(LocalDateTime.now())
+                .statusPersetujuanMandor("DISETUJUI")
+                .statusPersetujuanAdmin("DISETUJUI")
+                .alasanPenolakan(null)
+                .beratDiakui(300.0)
+                .build();
+
+        when(pengirimanRepository.findById(pengirimanId)).thenReturn(Optional.of(alreadyReviewed));
+
+        assertThrows(IllegalStateException.class,
+                () -> pengirimanService.reviewByAdmin(pengirimanId, request));
+    }
+
+    @Test
+    void testReviewByAdmin_RejectNoReason_Throws() {
+        ReviewAdminRequestDTO request = new ReviewAdminRequestDTO();
+        request.setStatusAproval("Reject");
+        request.setAlasanPenolakan(" ");
+
+        when(pengirimanRepository.findById(pengirimanId))
+                .thenReturn(Optional.of(pengirimanDisetujuiMandor));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pengirimanService.reviewByAdmin(pengirimanId, request));
+    }
+
+    @Test
+    void testReviewByAdmin_PartialRejectBlankReason_Throws() {
+        ReviewAdminRequestDTO request = new ReviewAdminRequestDTO();
+        request.setStatusAproval("Partial_Reject");
+        request.setBeratdiAkuiKg(250.0);
+        request.setAlasanPenolakan(" ");
+
+        when(pengirimanRepository.findById(pengirimanId))
+                .thenReturn(Optional.of(pengirimanDisetujuiMandor));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pengirimanService.reviewByAdmin(pengirimanId, request));
+    }
+
+    @Test
+    void testReviewByAdmin_PartialRejectInvalidWeight_Throws() {
+        ReviewAdminRequestDTO request = new ReviewAdminRequestDTO();
+        request.setStatusAproval("Partial_Reject");
+        request.setBeratdiAkuiKg(0.0);
+        request.setAlasanPenolakan("Berat tidak valid");
+
+        when(pengirimanRepository.findById(pengirimanId))
+                .thenReturn(Optional.of(pengirimanDisetujuiMandor));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pengirimanService.reviewByAdmin(pengirimanId, request));
+    }
+
+    @Test
+    void testReviewByAdmin_InvalidStatus_Throws() {
+        ReviewAdminRequestDTO request = new ReviewAdminRequestDTO();
+        request.setStatusAproval("Hold");
+
+        when(pengirimanRepository.findById(pengirimanId))
+                .thenReturn(Optional.of(pengirimanDisetujuiMandor));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pengirimanService.reviewByAdmin(pengirimanId, request));
+    }
+
     // =========================================================
     // getDaftarPengiriman (endpoint umum)
     // UPDATE: parameter supirId bertipe UUID (bukan Long)
@@ -465,6 +568,75 @@ class PengirimanServiceTest {
         // Filter dengan supirId yang tidak cocok
         List<PengirimanResponseDTO> empty =
                 pengirimanService.getDaftarPengiriman(null, UUID.randomUUID(), null);
+        assertEquals(0, empty.size());
+    }
+
+    @Test
+    void testGetDaftarPengirimanSupir_WithDateFilter() {
+        String dateStr = pengiriman.getTanggalPengiriman().toLocalDate().toString();
+        String otherDate = pengiriman.getTanggalPengiriman().toLocalDate().minusDays(1).toString();
+        when(pengirimanRepository.findBySupirId(supirId)).thenReturn(List.of(pengiriman));
+
+        List<PengirimanResponseDTO> result =
+                pengirimanService.getDaftarPengirimanSupir(supirId, dateStr);
+        assertEquals(1, result.size());
+
+        List<PengirimanResponseDTO> empty =
+                pengirimanService.getDaftarPengirimanSupir(supirId, otherDate);
+        assertEquals(0, empty.size());
+    }
+
+    @Test
+    void testGetDaftarPengirimanMandor_WithStatusFilter() {
+        when(pengirimanRepository.findByMandorId(mandorId)).thenReturn(List.of(pengiriman));
+
+        List<PengirimanResponseDTO> result =
+                pengirimanService.getDaftarPengirimanMandor(mandorId, "Memuat");
+        assertEquals(1, result.size());
+
+        List<PengirimanResponseDTO> empty =
+                pengirimanService.getDaftarPengirimanMandor(mandorId, "Tiba di Tujuan");
+        assertEquals(0, empty.size());
+    }
+
+    @Test
+    void testGetDaftarPengirimanSupirByMandor() {
+        UUID supirLain = UUID.randomUUID();
+        Pengiriman pengirimanSupirLain = Pengiriman.builder()
+                .id(UUID.randomUUID())
+                .mandorId(mandorId)
+                .supirId(supirLain)
+                .hasilPanen(listPanenId)
+                .totalBeratKg(300.0)
+                .status("Memuat")
+                .tanggalPengiriman(LocalDateTime.now())
+                .statusPersetujuanMandor("PENDING")
+                .statusPersetujuanAdmin("PENDING")
+                .alasanPenolakan(null)
+                .beratDiakui(0.0)
+                .build();
+
+        when(pengirimanRepository.findByMandorId(mandorId))
+                .thenReturn(List.of(pengiriman, pengirimanSupirLain));
+
+        List<PengirimanResponseDTO> result =
+                pengirimanService.getDaftarPengirimanSupirByMandor(mandorId, supirId);
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void testGetDaftarPengirimanDisetujuiMandor_WithDateFilter() {
+        String dateStr = pengirimanDisetujuiMandor.getTanggalPengiriman().toLocalDate().toString();
+        String otherDate = pengirimanDisetujuiMandor.getTanggalPengiriman().toLocalDate().minusDays(1).toString();
+        when(pengirimanRepository.findByStatusPersetujuanMandor("DISETUJUI"))
+                .thenReturn(List.of(pengirimanDisetujuiMandor));
+
+        List<PengirimanResponseDTO> result =
+                pengirimanService.getDaftarPengirimanDisetujuiMandor(dateStr);
+        assertEquals(1, result.size());
+
+        List<PengirimanResponseDTO> empty =
+                pengirimanService.getDaftarPengirimanDisetujuiMandor(otherDate);
         assertEquals(0, empty.size());
     }
 

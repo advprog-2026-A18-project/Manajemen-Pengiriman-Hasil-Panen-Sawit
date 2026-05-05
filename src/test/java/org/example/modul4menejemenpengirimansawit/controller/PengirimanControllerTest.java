@@ -160,6 +160,18 @@ class PengirimanControllerTest {
                 .andExpect(jsonPath("$.length()").value(1));
     }
 
+    @Test
+    void testGetDaftarPengirimanSupirByMandor() throws Exception {
+        UUID mandorId = UUID.randomUUID();
+        UUID supirId = UUID.randomUUID();
+        when(pengirimanService.getDaftarPengirimanSupirByMandor(eq(mandorId), eq(supirId)))
+                .thenReturn(List.of(new PengirimanResponseDTO()));
+
+        mockMvc.perform(get("/api/pengiriman/mandor/" + mandorId + "/supir/" + supirId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+    }
+
     // ----------------------------------------------------------
     // GET /api/pengiriman/admin/disetujui — Admin lihat yang sudah disetujui Mandor (endpoint baru)
     // ----------------------------------------------------------
