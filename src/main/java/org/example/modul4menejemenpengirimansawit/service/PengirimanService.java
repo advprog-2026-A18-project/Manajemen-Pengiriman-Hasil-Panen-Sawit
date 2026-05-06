@@ -229,7 +229,7 @@ public class PengirimanService {
         switch (status.toUpperCase(Locale.ROOT)) {
             case "APPROVE" -> {
                 pengiriman.setStatusPersetujuanAdmin(STATUS_DISETUJUI);
-                pengiriman.setBeratDiakui(pengiriman.getTotalBeratKg());
+                pengiriman.setBeratDiakui(request.getBeratdiAkuiKg());
                 eksternalService.createPayrollMandor(
                         pengiriman.getId(),
                         pengiriman.getMandorId(),

@@ -5,6 +5,6 @@ import lombok.*;
 @Setter
 @Getter
 public class ReviewMandorRequestDTO {
-    private boolean isApproved;
+    private boolean approved;
     private String alasanPenolakan;  // fix: was 'AlasanPenolakan' (uppercase A)
 }

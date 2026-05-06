@@ -17,6 +17,8 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -469,6 +471,7 @@ class PengirimanServiceTest {
     void testReviewByAdmin_Approve() {
         ReviewAdminRequestDTO request = new ReviewAdminRequestDTO();
         request.setStatusAproval("Approve");
+        request.setBeratdiAkuiKg(300.0); 
 
         // UPDATE: gunakan pengirimanDisetujuiMandor
         when(pengirimanRepository.findById(pengirimanId))
@@ -487,6 +490,7 @@ class PengirimanServiceTest {
     void testReviewByAdmin_Approve_Path() {
         ReviewAdminRequestDTO request = new ReviewAdminRequestDTO();
         request.setStatusAproval("Approve");
+         request.setBeratdiAkuiKg(300.0); 
 
         // UPDATE: gunakan pengirimanDisetujuiMandor
         when(pengirimanRepository.findById(pengirimanId))
