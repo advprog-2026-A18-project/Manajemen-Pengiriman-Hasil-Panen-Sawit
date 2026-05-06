@@ -51,7 +51,9 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
-
+dependencyLocking {
+    lockAllConfigurations()
+}
 // ... (Bagian plugins sampai dependencies tetap sama) ...
 
 tasks.withType<Test> {
