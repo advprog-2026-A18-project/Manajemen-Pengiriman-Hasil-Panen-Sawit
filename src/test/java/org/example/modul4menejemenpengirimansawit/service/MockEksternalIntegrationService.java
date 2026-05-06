@@ -23,5 +23,8 @@ class MockEksternalIntegrationServiceTest {
         assertEquals("Mandor Bayangan", mandor.getNama());
         assertFalse(panen.isEmpty());
         assertEquals(100.0, panen.get(0).getKilogramSawit());
+        assertEquals("DISETUJUI", panen.get(0).getStatusPersetujuanMandor());
+        assertEquals(mandor.getKebunId(), supir.getKebunId());
+        assertEquals(1, service.getSupirByKebun(mandor.getKebunId(), "Bayangan").size());
     }
 }

@@ -1,6 +1,7 @@
 package org.example.modul4menejemenpengirimansawit.controller;
 
 import org.example.modul4menejemenpengirimansawit.dto.request.*;
+import org.example.modul4menejemenpengirimansawit.dto.external.UserDTO;
 import org.example.modul4menejemenpengirimansawit.dto.response.PengirimanResponseDTO;
 import org.example.modul4menejemenpengirimansawit.service.PengirimanService;
 import org.springframework.http.ResponseEntity;
@@ -89,6 +90,18 @@ public class PengirimanController {
     }
 
     // ----------------------------------------------------------
+    // MANDOR: Lihat daftar Supir pada kebun yang sama (filter nama)
+    // GET /api/pengiriman/mandor/{mandorId}/supir?searchNama=...
+    // ----------------------------------------------------------
+    @GetMapping("/mandor/{mandorId}/supir")
+    public ResponseEntity<List<UserDTO>> getDaftarSupirSatuKebun(
+            @PathVariable UUID mandorId,
+            @RequestParam(required = false) String searchNama) {
+        return ResponseEntity.ok(
+                pengirimanService.getDaftarSupirSatuKebun(mandorId, searchNama));
+    }
+
+    // ----------------------------------------------------------
     // MANDOR: Approve atau Reject pengiriman setelah "Tiba di Tujuan"
     // PUT /api/pengiriman/{id}/review/mandor?mandorId=<UUID>
     // ----------------------------------------------------------
@@ -106,8 +119,10 @@ public class PengirimanController {
     // ----------------------------------------------------------
     @GetMapping("/admin/disetujui")
     public ResponseEntity<List<PengirimanResponseDTO>> getDaftarPengirimanDisetujuiMandor(
-            @RequestParam(required = false) String tanggal) {
-        return ResponseEntity.ok(pengirimanService.getDaftarPengirimanDisetujuiMandor(tanggal));
+            @RequestParam(required = false) String tanggal,
+            @RequestParam(required = false) String searchNamaMandor) {
+        return ResponseEntity.ok(
+                pengirimanService.getDaftarPengirimanDisetujuiMandor(tanggal, searchNamaMandor));
     }
 
     // ----------------------------------------------------------

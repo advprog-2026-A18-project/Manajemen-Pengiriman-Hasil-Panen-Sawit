@@ -18,6 +18,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,6 +36,7 @@ class PengirimanServiceTest {
     private UUID pengirimanId;
     private UUID mandorId;
     private UUID supirId;
+    private UUID kebunId;
     private UUID panenId1;
     private UUID panenId2;
     private List<UUID> listPanenId;
@@ -60,6 +62,7 @@ class PengirimanServiceTest {
         pengirimanId = UUID.randomUUID();
         mandorId     = UUID.randomUUID();
         supirId      = UUID.randomUUID();
+        kebunId      = UUID.randomUUID();
         panenId1     = UUID.randomUUID();
         panenId2     = UUID.randomUUID();
         listPanenId  = List.of(panenId1, panenId2);
@@ -114,10 +117,14 @@ class PengirimanServiceTest {
                 .thenReturn(UserDTO.builder().id(mandorId).nama("Mandor A").build());
         lenient().when(eksternalService.getSupirById(supirId))
                 .thenReturn(UserDTO.builder().id(supirId).nama("Supir A").build());
+        lenient().when(eksternalService.getKebunIdByMandorId(mandorId)).thenReturn(kebunId);
+        lenient().when(eksternalService.getKebunIdBySupirId(supirId)).thenReturn(kebunId);
         lenient().when(eksternalService.getPanenByIds(listPanenId))
                 .thenReturn(List.of(
-                        PanenDTO.builder().id(panenId1).kilogramSawit(150.0).build(),
-                        PanenDTO.builder().id(panenId2).kilogramSawit(150.0).build()
+                        PanenDTO.builder().id(panenId1).kilogramSawit(150.0)
+                                .statusPersetujuanMandor("DISETUJUI").build(),
+                        PanenDTO.builder().id(panenId2).kilogramSawit(150.0)
+                                .statusPersetujuanMandor("DISETUJUI").build()
                 ));
     }
 
@@ -158,10 +165,129 @@ class PengirimanServiceTest {
     @Test
     void testTugaskanSupir_ExceedCapacity() {
         CreatePengirimanRequestDTO request = new CreatePengirimanRequestDTO();
+        request.setSupirId(supirId);
         request.setHasilPanenId(listPanenId);
 
         when(eksternalService.getPanenByIds(listPanenId))
-                .thenReturn(List.of(PanenDTO.builder().kilogramSawit(500.0).build()));
+                .thenReturn(List.of(
+                        PanenDTO.builder().id(panenId1).kilogramSawit(250.0)
+                                .statusPersetujuanMandor("DISETUJUI").build(),
+                        PanenDTO.builder().id(panenId2).kilogramSawit(250.0)
+                                .statusPersetujuanMandor("DISETUJUI").build()
+                ));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pengirimanService.tugaskanSupir(request, mandorId));
+    }
+
+    @Test
+    void testTugaskanSupir_NullRequest_Throws() {
+        assertThrows(IllegalArgumentException.class,
+                () -> pengirimanService.tugaskanSupir(null, mandorId));
+    }
+
+    @Test
+    void testTugaskanSupir_MissingSupir_Throws() {
+        CreatePengirimanRequestDTO request = new CreatePengirimanRequestDTO();
+        request.setHasilPanenId(listPanenId);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pengirimanService.tugaskanSupir(request, mandorId));
+    }
+
+    @Test
+    void testTugaskanSupir_EmptyPanen_Throws() {
+        CreatePengirimanRequestDTO request = new CreatePengirimanRequestDTO();
+        request.setSupirId(supirId);
+        request.setHasilPanenId(List.of());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pengirimanService.tugaskanSupir(request, mandorId));
+    }
+
+    @Test
+    void testTugaskanSupir_WrongKebun_Throws() {
+        CreatePengirimanRequestDTO request = new CreatePengirimanRequestDTO();
+        request.setSupirId(supirId);
+        request.setHasilPanenId(listPanenId);
+
+        when(eksternalService.getKebunIdBySupirId(supirId)).thenReturn(UUID.randomUUID());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pengirimanService.tugaskanSupir(request, mandorId));
+    }
+
+    @Test
+    void testTugaskanSupir_MandorKebunNotFound_Throws() {
+        CreatePengirimanRequestDTO request = new CreatePengirimanRequestDTO();
+        request.setSupirId(supirId);
+        request.setHasilPanenId(listPanenId);
+
+        when(eksternalService.getKebunIdByMandorId(mandorId)).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pengirimanService.tugaskanSupir(request, mandorId));
+    }
+
+    @Test
+    void testTugaskanSupir_SupirKebunNotFound_Throws() {
+        CreatePengirimanRequestDTO request = new CreatePengirimanRequestDTO();
+        request.setSupirId(supirId);
+        request.setHasilPanenId(listPanenId);
+
+        when(eksternalService.getKebunIdBySupirId(supirId)).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pengirimanService.tugaskanSupir(request, mandorId));
+    }
+
+    @Test
+    void testTugaskanSupir_UnapprovedPanen_Throws() {
+        CreatePengirimanRequestDTO request = new CreatePengirimanRequestDTO();
+        request.setSupirId(supirId);
+        request.setHasilPanenId(listPanenId);
+
+        when(eksternalService.getPanenByIds(listPanenId))
+                .thenReturn(List.of(
+                        PanenDTO.builder().id(panenId1).kilogramSawit(150.0)
+                                .statusPersetujuanMandor("PENDING").build(),
+                        PanenDTO.builder().id(panenId2).kilogramSawit(150.0)
+                                .statusPersetujuanMandor("DISETUJUI").build()
+                ));
+
+        assertThrows(IllegalStateException.class,
+                () -> pengirimanService.tugaskanSupir(request, mandorId));
+    }
+
+    @Test
+    void testTugaskanSupir_MissingPanenFromExternal_Throws() {
+        CreatePengirimanRequestDTO request = new CreatePengirimanRequestDTO();
+        request.setSupirId(supirId);
+        request.setHasilPanenId(listPanenId);
+
+        when(eksternalService.getPanenByIds(listPanenId))
+                .thenReturn(List.of(
+                        PanenDTO.builder().id(panenId1).kilogramSawit(150.0)
+                                .statusPersetujuanMandor("DISETUJUI").build()
+                ));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pengirimanService.tugaskanSupir(request, mandorId));
+    }
+
+    @Test
+    void testTugaskanSupir_InvalidPanenWeight_Throws() {
+        CreatePengirimanRequestDTO request = new CreatePengirimanRequestDTO();
+        request.setSupirId(supirId);
+        request.setHasilPanenId(listPanenId);
+
+        when(eksternalService.getPanenByIds(listPanenId))
+                .thenReturn(List.of(
+                        PanenDTO.builder().id(panenId1).kilogramSawit(0.0)
+                                .statusPersetujuanMandor("DISETUJUI").build(),
+                        PanenDTO.builder().id(panenId2).kilogramSawit(150.0)
+                                .statusPersetujuanMandor("DISETUJUI").build()
+                ));
 
         assertThrows(IllegalArgumentException.class,
                 () -> pengirimanService.tugaskanSupir(request, mandorId));
@@ -246,6 +372,8 @@ class PengirimanServiceTest {
                 pengirimanService.reviewByMandor(pengirimanId, mandorId, request);
 
         assertEquals("DISETUJUI", response.getStatusPersetujuanMandor());
+        verify(eksternalService).createPayrollSupir(
+                eq(pengirimanId), eq(supirId), eq(300.0), anyString());
     }
 
     @Test
@@ -265,6 +393,7 @@ class PengirimanServiceTest {
         assertEquals("DITOLAK", response.getStatusPersetujuanMandor());
         verify(pengirimanRepository).save(
                 argThat(p -> "Kualitas buah kurang baik".equals(p.getAlasanPenolakan())));
+        verify(eksternalService, never()).createPayrollSupir(any(), any(), anyDouble(), anyString());
     }
 
     @Test
@@ -350,6 +479,8 @@ class PengirimanServiceTest {
 
         verify(pengirimanRepository).save(
                 argThat(p -> p.getBeratDiakui() == p.getTotalBeratKg()));
+        verify(eksternalService).createPayrollMandor(
+                eq(pengirimanId), eq(mandorId), eq(300.0), anyString());
     }
 
     @Test
@@ -383,6 +514,8 @@ class PengirimanServiceTest {
         pengirimanService.reviewByAdmin(pengirimanId, request);
 
         verify(pengirimanRepository).save(argThat(p -> p.getBeratDiakui() == 250.0));
+        verify(eksternalService).createPayrollMandor(
+                eq(pengirimanId), eq(mandorId), eq(250.0), anyString());
     }
 
     @Test
@@ -414,6 +547,7 @@ class PengirimanServiceTest {
 
         verify(pengirimanRepository).save(
                 argThat(p -> "Dokumen tidak lengkap".equals(p.getAlasanPenolakan())));
+        verify(eksternalService, never()).createPayrollMandor(any(), any(), anyDouble(), anyString());
     }
 
     @Test
@@ -524,6 +658,17 @@ class PengirimanServiceTest {
                 () -> pengirimanService.reviewByAdmin(pengirimanId, request));
     }
 
+    @Test
+    void testReviewByAdmin_NullStatus_Throws() {
+        ReviewAdminRequestDTO request = new ReviewAdminRequestDTO();
+
+        when(pengirimanRepository.findById(pengirimanId))
+                .thenReturn(Optional.of(pengirimanDisetujuiMandor));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pengirimanService.reviewByAdmin(pengirimanId, request));
+    }
+
     // =========================================================
     // getDaftarPengiriman (endpoint umum)
     // UPDATE: parameter supirId bertipe UUID (bukan Long)
@@ -625,6 +770,32 @@ class PengirimanServiceTest {
     }
 
     @Test
+    void testGetDaftarSupirSatuKebun_WithSearchNama() {
+        UserDTO supirA = UserDTO.builder()
+                .id(supirId)
+                .nama("Supir A")
+                .role("SUPIR")
+                .kebunId(kebunId)
+                .build();
+
+        when(eksternalService.getSupirByKebun(kebunId, "A"))
+                .thenReturn(List.of(supirA));
+
+        List<UserDTO> result = pengirimanService.getDaftarSupirSatuKebun(mandorId, "A");
+
+        assertEquals(1, result.size());
+        assertEquals("Supir A", result.get(0).getNama());
+    }
+
+    @Test
+    void testGetDaftarSupirSatuKebun_MandorKebunNotFound_Throws() {
+        when(eksternalService.getKebunIdByMandorId(mandorId)).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pengirimanService.getDaftarSupirSatuKebun(mandorId, null));
+    }
+
+    @Test
     void testGetDaftarPengirimanDisetujuiMandor_WithDateFilter() {
         String dateStr = pengirimanDisetujuiMandor.getTanggalPengiriman().toLocalDate().toString();
         String otherDate = pengirimanDisetujuiMandor.getTanggalPengiriman().toLocalDate().minusDays(1).toString();
@@ -632,11 +803,25 @@ class PengirimanServiceTest {
                 .thenReturn(List.of(pengirimanDisetujuiMandor));
 
         List<PengirimanResponseDTO> result =
-                pengirimanService.getDaftarPengirimanDisetujuiMandor(dateStr);
+                pengirimanService.getDaftarPengirimanDisetujuiMandor(dateStr, null);
         assertEquals(1, result.size());
 
         List<PengirimanResponseDTO> empty =
-                pengirimanService.getDaftarPengirimanDisetujuiMandor(otherDate);
+                pengirimanService.getDaftarPengirimanDisetujuiMandor(otherDate, null);
+        assertEquals(0, empty.size());
+    }
+
+    @Test
+    void testGetDaftarPengirimanDisetujuiMandor_WithSearchNamaMandor() {
+        when(pengirimanRepository.findByStatusPersetujuanMandor("DISETUJUI"))
+                .thenReturn(List.of(pengirimanDisetujuiMandor));
+
+        List<PengirimanResponseDTO> result =
+                pengirimanService.getDaftarPengirimanDisetujuiMandor(null, "Mandor A");
+        assertEquals(1, result.size());
+
+        List<PengirimanResponseDTO> empty =
+                pengirimanService.getDaftarPengirimanDisetujuiMandor(null, "Mandor Z");
         assertEquals(0, empty.size());
     }
 

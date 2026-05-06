@@ -17,5 +17,6 @@ public class UserDTO {
     private UUID id;
     private String nama;
     private String role;
+    private UUID kebunId;
 
 }

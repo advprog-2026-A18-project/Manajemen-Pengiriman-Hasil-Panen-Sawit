@@ -18,4 +18,5 @@ public class PanenDTO {
     private UUID id;
     private Double kilogramSawit;
     private String beritaHasilPanen;
+    private String statusPersetujuanMandor;
 }

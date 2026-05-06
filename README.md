@@ -1,150 +1,135 @@
-
----
-
 # Manajemen Pengiriman Hasil Panen Sawit API
 
-## API Reference
+API Modul 4 untuk mengatur pengiriman hasil panen sawit valid dari kebun ke pabrik.
 
-Berikut adalah daftar *endpoint* API yang dapat digunakan untuk mengelola data pengiriman hasil panen sawit.
+## Aturan Utama
 
-#### 1. Menugaskan Supir
+- Mandor hanya dapat menugaskan Supir Truk yang berada pada kebun yang sama.
+- Hasil panen yang dikirim harus sudah disetujui Mandor pada modul hasil panen.
+- Total muatan satu pengiriman tidak boleh melebihi 400 kg.
+- Status pengiriman berjalan satu arah: `Memuat` -> `Mengirim` -> `Tiba di Tujuan`.
+- Approval Mandor memicu payroll Supir secara async melalui integrasi eksternal.
+- Approval atau partial reject Admin memicu payroll Mandor secara async melalui integrasi eksternal.
 
-```http
-  POST /api/pengiriman
+## Endpoint
 
-```
-
-### Request Parameters
-
-| Parameter | Type   | Description |
-| --- |--------| --- |
-| `mandorId` | `UUID` | **Required (Query Param)**. ID Mandor yang melakukan penugasan |
-
-### Request Body (`CreatePengirimanRequestDTO`)
-
-| Parameter | Type         | Description |
-| --- |--------------| --- |
-| `supirId` | `UUID`       | **Required**. ID Supir yang ditugaskan |
-| `hasilPanenIds` | `List<UUID>` | **Required**. Daftar ID hasil panen yang akan dikirim |
-
-### Response (`PengirimanResponseDTO`)
-
-| Parameter | Type             | Description |
-| --- |------------------| --- |
-| `id` | `UUID`           | ID unik pengiriman |
-| `mandorId` | `UUID`           | ID Mandor penanggung jawab |
-| `namaMandor` | `String`         | Nama Mandor |
-| `supirId` | `UUID`           | ID Supir yang bertugas |
-| `namaSupir` | `String`         | Nama Supir |
-| `detailPanen` | `List<PanenDTO>` | Detail hasil panen yang dibawa |
-| `totalBeratKg` | `Double`         | Total berat muatan dalam Kg |
-| `statusPengiriman` | `String`         | Status saat ini (Memuat / Mengirim / Tiba di Tujuan) |
-| `tanggalPengiriman` | `DateTime`       | Waktu pengiriman dibuat |
-| `statusApprovalMandor` | `String`         | Status persetujuan dari Mandor |
-| `statusApprovalAdmin` | `String`         | Status persetujuan dari Admin |
-
----
-
-#### 2. Update Status Pengiriman (Oleh Supir)
+### 1. Mandor melihat daftar Supir satu kebun
 
 ```http
-  PUT /api/pengiriman/{Id}/status
-
+GET /api/pengiriman/mandor/{mandorId}/supir?searchNama=Supir
 ```
 
-### Path Variables
+Mengembalikan daftar Supir Truk yang bertugas pada kebun yang sama dengan Mandor. `searchNama` opsional.
 
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `Id` | `UUID` | **Required**. ID dari pengiriman yang ingin diupdate |
-
-### Request Body (`UpdateStatusRequestDTO`)
-
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `status` | `String` | **Required**. Status baru (Memuat, Mengirim, Tiba di Tujuan) |
-
-### Response
-
-Mengembalikan objek `PengirimanResponseDTO` yang telah diperbarui.
-
----
-
-#### 3. Review Pengiriman (Oleh Mandor)
+### 2. Mandor menugaskan Supir
 
 ```http
-  PUT /api/pengiriman/{Id}/review/mandor
-
+POST /api/pengiriman?mandorId={mandorId}
 ```
 
-### Path Variables
+Body:
 
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `Id` | `UUID` | **Required**. ID dari pengiriman yang ingin direview |
+```json
+{
+  "supirId": "uuid",
+  "hasilPanenIds": ["uuid"]
+}
+```
 
-### Request Body (`ReviewMandorRequestDTO`)
-
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `approved` | `boolean` | **Required**. `true` jika disetujui, `false` jika ditolak |
-| `alasanPenolakan` | `String` | **Required jika ditolak**. Alasan mengapa pengiriman ditolak |
-
-### Response
-
-Mengembalikan objek `PengirimanResponseDTO` yang telah diperbarui.
-
----
-
-#### 4. Review Pengiriman (Oleh Admin)
+### 3. Supir update status pengiriman
 
 ```http
-  PUT /api/pengiriman/{Id}/review/admin
-
+PUT /api/pengiriman/{id}/status?supirId={supirId}
 ```
 
-### Path Variables
+Body:
 
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `Id` | `UUID` | **Required**. ID dari pengiriman yang ingin direview |
+```json
+{
+  "status": "Mengirim"
+}
+```
 
-### Request Body (`ReviewAdminRequestDTO`)
+Status valid: `Memuat`, `Mengirim`, `Tiba di Tujuan`. Update hanya boleh maju satu langkah.
 
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `statusApproval` | `String` | **Required**. Status persetujuan (Approve, Reject, Partial_Reject) |
-| `alasanPenolakan` | `String` | **Required jika Reject/Partial_Reject**. Alasan penolakan |
-
-### Response
-
-Mengembalikan objek `PengirimanResponseDTO` yang telah diperbarui.
-
----
-
-#### 5. Get Daftar Pengiriman
+### 4. Supir melihat daftar pengiriman miliknya
 
 ```http
-  GET /api/pengiriman
-
+GET /api/pengiriman/supir?supirId={supirId}&tanggal=2026-05-06
 ```
 
-### Request Parameters (Query)
+`tanggal` opsional.
 
-*Semua parameter bersifat opsional dan digunakan untuk filter data.*
+### 5. Mandor melihat daftar pengiriman di kebunnya
 
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `status` | `String` | Filter berdasarkan status pengiriman (ex: Memuat, Mengirim) |
-| `supirId` | `Long` | Filter berdasarkan ID Supir tertentu |
-| `tanggal` | `String` | Filter berdasarkan tanggal pengiriman (Format: YYYY-MM-DD) |
+```http
+GET /api/pengiriman/mandor?mandorId={mandorId}&status=Mengirim
+```
 
-### Response
+`status` opsional.
 
-Mengembalikan `List/Array` berisi objek `PengirimanResponseDTO`.
+### 6. Mandor melihat pengiriman spesifik Supir
 
----
+```http
+GET /api/pengiriman/mandor/{mandorId}/supir/{supirId}
+```
 
-## Authors
+### 7. Mandor approve/reject pengiriman
 
-* [@gebxby](https://www.google.com/search?q=https://www.github.com/gebxby)
+```http
+PUT /api/pengiriman/{id}/review/mandor?mandorId={mandorId}
+```
+
+Body:
+
+```json
+{
+  "approved": false,
+  "alasanPenolakan": "Kualitas muatan tidak sesuai"
+}
+```
+
+Review Mandor hanya bisa dilakukan setelah status pengiriman `Tiba di Tujuan`.
+
+### 8. Admin melihat pengiriman yang sudah disetujui Mandor
+
+```http
+GET /api/pengiriman/admin/disetujui?tanggal=2026-05-06&searchNamaMandor=Mandor
+```
+
+`tanggal` dan `searchNamaMandor` opsional.
+
+### 9. Admin approve/reject/partial reject pengiriman
+
+```http
+PUT /api/pengiriman/{id}/review/admin
+```
+
+Body approve:
+
+```json
+{
+  "statusApproval": "Approve"
+}
+```
+
+Body reject:
+
+```json
+{
+  "statusApproval": "Reject",
+  "alasanPenolakan": "Dokumen tidak lengkap"
+}
+```
+
+Body partial reject:
+
+```json
+{
+  "statusApproval": "Partial_Reject",
+  "beratDiakuiKg": 250.0,
+  "alasanPenolakan": "Sebagian sawit tidak lengkap"
+}
+```
+
+Admin hanya dapat mereview pengiriman yang sudah disetujui Mandor.

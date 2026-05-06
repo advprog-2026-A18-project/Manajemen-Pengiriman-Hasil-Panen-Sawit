@@ -25,13 +25,19 @@ public class PengirimanService {
     // STATUS ORDERING: digunakan untuk validasi status flow
     // =========================================================
     private static final List<String> STATUS_ORDER = List.of("Memuat", "Mengirim", "Tiba di Tujuan");
+    private static final String STATUS_DISETUJUI = "DISETUJUI";
+    private static final Set<String> STATUS_PANEN_DISETUJUI = Set.of("DISETUJUI", "APPROVED", "APPROVE");
 
     // =========================================================
     // 1. Mandor menugaskan Supir untuk mengangkut hasil panen
     // =========================================================
     @Transactional
     public PengirimanResponseDTO tugaskanSupir(CreatePengirimanRequestDTO request, UUID mandorId) {
+        validateCreateRequest(request);
+        validateMandorAndSupirSameKebun(mandorId, request.getSupirId());
+
         List<PanenDTO> listPanen = eksternalService.getPanenByIds(request.getHasilPanenId());
+        validateHasilPanenDisetujui(request.getHasilPanenId(), listPanen);
 
         double totalBerat = listPanen.stream().mapToDouble(PanenDTO::getKilogramSawit).sum();
 
@@ -130,6 +136,14 @@ public class PengirimanService {
     }
 
     // =========================================================
+    // 5b. Mandor melihat daftar Supir pada kebun yang sama
+    // =========================================================
+    public List<UserDTO> getDaftarSupirSatuKebun(UUID mandorId, String searchNama) {
+        UUID kebunId = getKebunMandorOrThrow(mandorId);
+        return eksternalService.getSupirByKebun(kebunId, searchNama);
+    }
+
+    // =========================================================
     // 6. Mandor menyetujui / menolak pengiriman
     //    - Hanya bisa dilakukan setelah status = "Tiba di Tujuan"
     //    - Jika approve → trigger payroll Supir (async)
@@ -154,9 +168,12 @@ public class PengirimanService {
         }
 
         if (request.isApproved()) {
-            pengiriman.setStatusPersetujuanMandor("DISETUJUI");
-            // TODO: trigger payroll Supir secara asinkronus
-            // eventPublisher.publishEvent(new SupirPayrollEvent(pengiriman));
+            pengiriman.setStatusPersetujuanMandor(STATUS_DISETUJUI);
+            eksternalService.createPayrollSupir(
+                    pengiriman.getId(),
+                    pengiriman.getSupirId(),
+                    pengiriman.getTotalBeratKg(),
+                    "Payroll Supir untuk pengiriman " + pengiriman.getId());
         } else {
             if (request.getAlasanPenolakan() == null || request.getAlasanPenolakan().isBlank()) {
                 throw new IllegalArgumentException("Alasan penolakan wajib diisi.");
@@ -170,13 +187,17 @@ public class PengirimanService {
 
     // =========================================================
     // 7. Admin melihat daftar pengiriman yang disetujui Mandor
-    //    (filter nama mandor dilakukan di layer luar / controller)
+    //    Bisa difilter berdasarkan tanggal dan search nama Mandor
     // =========================================================
-    public List<PengirimanResponseDTO> getDaftarPengirimanDisetujuiMandor(String tanggal) {
-        return pengirimanRepository.findByStatusPersetujuanMandor("DISETUJUI").stream()
+    public List<PengirimanResponseDTO> getDaftarPengirimanDisetujuiMandor(String tanggal,
+                                                                          String searchNamaMandor) {
+        return pengirimanRepository.findByStatusPersetujuanMandor(STATUS_DISETUJUI).stream()
                 .filter(p -> tanggal == null ||
                         p.getTanggalPengiriman().toLocalDate().equals(LocalDate.parse(tanggal)))
                 .map(this::convertToResponseDTO)
+                .filter(dto -> searchNamaMandor == null || searchNamaMandor.isBlank()
+                        || (dto.getNamaMandor() != null && dto.getNamaMandor().toLowerCase(Locale.ROOT)
+                        .contains(searchNamaMandor.toLowerCase(Locale.ROOT))))
                 .collect(Collectors.toList());
     }
 
@@ -190,7 +211,7 @@ public class PengirimanService {
     public PengirimanResponseDTO reviewByAdmin(UUID pengirimanId, ReviewAdminRequestDTO request) {
         Pengiriman pengiriman = findPengirimanOrThrow(pengirimanId);
 
-        if (!"DISETUJUI".equals(pengiriman.getStatusPersetujuanMandor())) {
+        if (!STATUS_DISETUJUI.equals(pengiriman.getStatusPersetujuanMandor())) {
             throw new IllegalStateException(
                 "Pengiriman belum disetujui oleh Mandor. Status persetujuan Mandor: "
                 + pengiriman.getStatusPersetujuanMandor());
@@ -200,13 +221,20 @@ public class PengirimanService {
         }
 
         String status = request.getStatusAproval();
+        if (status == null || status.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Status approval tidak valid. Pilihan: Approve, Reject, Partial_Reject.");
+        }
 
-        switch (status.toUpperCase()) {
+        switch (status.toUpperCase(Locale.ROOT)) {
             case "APPROVE" -> {
-                pengiriman.setStatusPersetujuanAdmin("DISETUJUI");
+                pengiriman.setStatusPersetujuanAdmin(STATUS_DISETUJUI);
                 pengiriman.setBeratDiakui(pengiriman.getTotalBeratKg());
-                // TODO: trigger payroll Mandor secara asinkronus
-                // eventPublisher.publishEvent(new MandorPayrollEvent(pengiriman));
+                eksternalService.createPayrollMandor(
+                        pengiriman.getId(),
+                        pengiriman.getMandorId(),
+                        pengiriman.getTotalBeratKg(),
+                        "Payroll Mandor untuk pengiriman " + pengiriman.getId());
             }
             case "REJECT" -> {
                 if (request.getAlasanPenolakan() == null || request.getAlasanPenolakan().isBlank()) {
@@ -230,8 +258,11 @@ public class PengirimanService {
                 pengiriman.setStatusPersetujuanAdmin("PARTIAL_DITOLAK");
                 pengiriman.setBeratDiakui(request.getBeratdiAkuiKg());
                 pengiriman.setAlasanPenolakan(request.getAlasanPenolakan());
-                // TODO: trigger payroll Mandor dengan berat parsial
-                // eventPublisher.publishEvent(new MandorPayrollEvent(pengiriman, request.getBeratdiAkuiKg()));
+                eksternalService.createPayrollMandor(
+                        pengiriman.getId(),
+                        pengiriman.getMandorId(),
+                        request.getBeratdiAkuiKg(),
+                        "Payroll Mandor parsial untuk pengiriman " + pengiriman.getId());
             }
             default -> throw new IllegalArgumentException(
                 "Status approval tidak valid. Pilihan: Approve, Reject, Partial_Reject.");
@@ -247,6 +278,71 @@ public class PengirimanService {
         return pengirimanRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException(
                     "Pengiriman dengan ID " + id + " tidak ditemukan."));
+    }
+
+    private void validateCreateRequest(CreatePengirimanRequestDTO request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Request pengiriman wajib diisi.");
+        }
+        if (request.getSupirId() == null) {
+            throw new IllegalArgumentException("Supir wajib dipilih.");
+        }
+        if (request.getHasilPanenId() == null || request.getHasilPanenId().isEmpty()) {
+            throw new IllegalArgumentException("Minimal satu hasil panen wajib dipilih.");
+        }
+    }
+
+    private void validateMandorAndSupirSameKebun(UUID mandorId, UUID supirId) {
+        UUID kebunMandorId = getKebunMandorOrThrow(mandorId);
+        UUID kebunSupirId = eksternalService.getKebunIdBySupirId(supirId);
+
+        if (kebunSupirId == null) {
+            throw new IllegalArgumentException("Data kebun Supir tidak ditemukan.");
+        }
+        if (!kebunMandorId.equals(kebunSupirId)) {
+            throw new IllegalArgumentException(
+                    "Mandor hanya dapat menugaskan Supir Truk pada kebun yang sama.");
+        }
+    }
+
+    private UUID getKebunMandorOrThrow(UUID mandorId) {
+        if (mandorId == null) {
+            throw new IllegalArgumentException("Mandor wajib diisi.");
+        }
+
+        UUID kebunMandorId = eksternalService.getKebunIdByMandorId(mandorId);
+        if (kebunMandorId == null) {
+            throw new IllegalArgumentException("Data kebun Mandor tidak ditemukan.");
+        }
+        return kebunMandorId;
+    }
+
+    private void validateHasilPanenDisetujui(List<UUID> requestedPanenIds, List<PanenDTO> listPanen) {
+        if (listPanen == null || listPanen.isEmpty()) {
+            throw new IllegalArgumentException("Data hasil panen tidak ditemukan.");
+        }
+
+        Set<UUID> requestedIds = new HashSet<>(requestedPanenIds);
+        Set<UUID> foundIds = listPanen.stream()
+                .map(PanenDTO::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (!foundIds.containsAll(requestedIds)) {
+            throw new IllegalArgumentException("Sebagian data hasil panen tidak ditemukan.");
+        }
+
+        for (PanenDTO panen : listPanen) {
+            if (panen.getKilogramSawit() == null || panen.getKilogramSawit() <= 0) {
+                throw new IllegalArgumentException("Kilogram hasil panen harus lebih dari 0.");
+            }
+            String statusPanen = panen.getStatusPersetujuanMandor();
+            if (statusPanen == null
+                    || !STATUS_PANEN_DISETUJUI.contains(statusPanen.toUpperCase(Locale.ROOT))) {
+                throw new IllegalStateException(
+                        "Hasil panen " + panen.getId() + " belum disetujui Mandor.");
+            }
+        }
     }
 
     private PengirimanResponseDTO convertToResponseDTO(Pengiriman entity) {
